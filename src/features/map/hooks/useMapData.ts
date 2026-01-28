@@ -1,13 +1,15 @@
 import { useState, useEffect } from "preact/hooks";
 import type { IMapService } from "../services/IMapService";
-import { MockMapService } from "../services/MockMapService";
+// import { MockMapService } from "../services/MockMapService";
+import { RosMapService } from "../services/RosMapService";
 import type { MapDataState } from "../types";
 
-const mapService: IMapService = new MockMapService();
+const mapService: IMapService = new RosMapService();
 
 export const useMapData = () => {
 	const [state, setState] = useState<MapDataState>({
 		map: null,
+		robotPose: null,
 		isLoading: true,
 		error: null,
 	});
@@ -15,25 +17,39 @@ export const useMapData = () => {
 	useEffect(() => {
 		let isMounted = true;
 
-		const loadMap = async () => {
+		const init = async () => {
 			try {
-				const data = await mapService.fetchMap();
+				const mapData = await mapService.fetchMap();
+
 				if (isMounted) {
-					setState({ map: data, isLoading: false, error: null });
+					setState((prev) => ({
+						...prev,
+						map: mapData,
+						isLoading: false,
+					}));
+
+					mapService.onRobotPoseUpdate((pose) => {
+						if (isMounted) {
+							setState((prev) => ({
+								...prev,
+								robotPose: pose,
+							}));
+						}
+					});
 				}
 			} catch (err) {
 				if (isMounted) {
 					console.error(err);
-					setState({
-						map: null,
+					setState((prev) => ({
+						...prev,
 						isLoading: false,
-						error: "Failed to load map data",
-					});
+						error: "Failed to connect to ROS",
+					}));
 				}
 			}
 		};
 
-		loadMap();
+		init();
 
 		return () => {
 			isMounted = false;

@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from "preact/hooks";
-import type { OccupancyGrid } from "../types";
+import type { OccupancyGrid, RobotPose } from "../types";
 import { renderMapToCanvas } from "../utils/mapRenderer";
 import { usePanZoom } from "../hooks/usePanZoom";
 import { cn } from "../../../shared/lib/utils";
@@ -24,8 +24,22 @@ const PinIcon = () => (
 	</svg>
 );
 
+const RobotIcon = () => (
+	<svg
+		viewBox="0 0 24 24"
+		fill="#3b82f6"
+		className="w-full h-full drop-shadow-md"
+		style={{ filter: "drop-shadow(0px 2px 2px rgba(0,0,0,0.5))" }}
+	>
+		<circle cx="12" cy="12" r="6" fill="white" />
+		<path d="M12 2L4.5 20.5L12 17L19.5 20.5L12 2Z" />
+	</svg>
+);
+
 interface MapCanvasProps {
 	mapData: OccupancyGrid;
+	robotPose?: RobotPose | null;
+	onGoalClick?: (x: number, y: number) => void;
 	className?: string;
 }
 
@@ -36,7 +50,12 @@ interface GoalPosition {
 	worldY: number;
 }
 
-export const MapCanvas = ({ mapData, className }: MapCanvasProps) => {
+export const MapCanvas = ({
+	mapData,
+	robotPose,
+	onGoalClick,
+	className,
+}: MapCanvasProps) => {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const containerRef = useRef<HTMLDivElement>(null);
 	const [goal, setGoal] = useState<GoalPosition | null>(null);
@@ -103,13 +122,41 @@ export const MapCanvas = ({ mapData, className }: MapCanvasProps) => {
 			mapData.info.origin.position.y +
 			pixelY_ROS * mapData.info.resolution;
 
-		console.log(`📍 Goal: [${worldX.toFixed(2)}, ${worldY.toFixed(2)}]`);
-
 		setGoal({ xPct, yPct, worldX, worldY });
+
+		if (onGoalClick) {
+			onGoalClick(worldX, worldY);
+		}
 	};
 
 	const stopAllEvents = (e: Event) => {
 		e.stopPropagation();
+	};
+
+	const getRobotStyle = () => {
+		if (!robotPose) return { display: "none" };
+
+		const resolution = mapData.info.resolution;
+		const originX = mapData.info.origin.position.x;
+		const originY = mapData.info.origin.position.y;
+		const width = mapData.info.width;
+		const height = mapData.info.height;
+
+		const pixelX = (robotPose.x - originX) / resolution;
+		const pixelY_ROS = (robotPose.y - originY) / resolution;
+
+		const leftPct = (pixelX / width) * 100;
+
+		const topPct = (1 - pixelY_ROS / height) * 100;
+
+		const rotationDeg = -robotPose.rotation * (180 / Math.PI) + 90;
+
+		return {
+			left: `${leftPct}%`,
+			top: `${topPct}%`,
+			transform: `translate(-50%, -50%) rotate(${rotationDeg}deg)`,
+			transformOrigin: "center center",
+		};
 	};
 
 	return (
@@ -165,9 +212,23 @@ export const MapCanvas = ({ mapData, className }: MapCanvasProps) => {
 							style={{ imageRendering: "pixelated" }}
 						/>
 
+						{robotPose && (
+							<div
+								className="absolute z-50 pointer-events-none transition-transform duration-75"
+								style={{
+									...getRobotStyle(),
+									width: "40px",
+									height: "40px",
+									scale: `${1 / transform.scale}`,
+								}}
+							>
+								<RobotIcon />
+							</div>
+						)}
+
 						{goal && (
 							<div
-								className="absolute z-50 pointer-events-none"
+								className="absolute z-40 pointer-events-none"
 								style={{
 									left: `${goal.xPct * 100}%`,
 									top: `${goal.yPct * 100}%`,
@@ -190,6 +251,14 @@ export const MapCanvas = ({ mapData, className }: MapCanvasProps) => {
 			{goal && (
 				<div className="absolute top-4 left-4 z-40 bg-black/75 text-white text-xs px-2 py-1 rounded backdrop-blur font-mono pointer-events-none">
 					Goal: {goal.worldX.toFixed(2)}, {goal.worldY.toFixed(2)}
+				</div>
+			)}
+
+			{robotPose && (
+				<div className="absolute top-4 right-4 z-40 bg-blue-600/90 text-white text-xs px-2 py-1 rounded backdrop-blur font-mono pointer-events-none flex flex-col gap-1">
+					<span>🤖 Robot</span>
+					<span>X: {robotPose.x.toFixed(2)}</span>
+					<span>Y: {robotPose.y.toFixed(2)}</span>
 				</div>
 			)}
 

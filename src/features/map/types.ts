@@ -15,8 +15,15 @@ export interface OccupancyGrid {
 	data: number[];
 }
 
+export interface RobotPose {
+	x: number;
+	y: number;
+	rotation: number;
+}
+
 export interface MapDataState {
 	map: OccupancyGrid | null;
+	robotPose: RobotPose | null;
 	isLoading: boolean;
 	error: string | null;
 }

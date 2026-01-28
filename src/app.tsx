@@ -2,7 +2,7 @@ import { useMapData } from "./features/map/hooks/useMapData";
 import { MapCanvas } from "./features/map/components/MapCanvas";
 
 export function App() {
-	const { map, isLoading, error } = useMapData();
+	const { map, robotPose, isLoading, error } = useMapData();
 
 	return (
 		<div className="min-h-screen w-screen bg-gray-100 p-8 flex flex-col items-center justify-center gap-6">
@@ -26,11 +26,26 @@ export function App() {
 				{map && (
 					<div className="flex flex-col gap-2">
 						<div className="max-w-4xl mx-auto w-full">
-							<MapCanvas mapData={map} className="w-full" />
+							<MapCanvas
+								mapData={map}
+								robotPose={robotPose}
+								className="w-full"
+							/>
 						</div>
-						<div className="text-xs text-gray-500 font-mono">
-							Resolution: {map.info.resolution} m/px | Size:{" "}
-							{map.info.width}x{map.info.height}
+						<div className="text-xs text-gray-500 font-mono flex justify-between">
+							<span>
+								Res: {map.info.resolution} m/px |{" "}
+								{map.info.width}x{map.info.height}
+							</span>
+							<span
+								className={
+									robotPose
+										? "text-green-600 font-bold"
+										: "text-amber-500"
+								}
+							>
+								{robotPose ? "● LIVE" : "○ Waiting for Odom..."}
+							</span>
 						</div>
 					</div>
 				)}

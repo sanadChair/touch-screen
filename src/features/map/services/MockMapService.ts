@@ -1,5 +1,5 @@
 import type { IMapService } from "./IMapService";
-import type { OccupancyGrid } from "../types";
+import type { OccupancyGrid, RobotPose } from "../types";
 import { MOCK_OCCUPANCY_GRID } from "../mocks/mockMap";
 
 export class MockMapService implements IMapService {
@@ -10,5 +10,8 @@ export class MockMapService implements IMapService {
 				resolve(MOCK_OCCUPANCY_GRID as OccupancyGrid);
 			}, 1500);
 		});
+	}
+	onRobotPoseUpdate(callback: (pose: RobotPose) => void): void {
+		// Do nothing
 	}
 }
