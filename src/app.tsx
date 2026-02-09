@@ -1,8 +1,16 @@
 import { useMapData } from "./features/map/hooks/useMapData";
 import { MapCanvas } from "./features/map/components/MapCanvas";
+import { useState } from "preact/hooks";
 
 export function App() {
-	const { map, robotPose, isLoading, error } = useMapData();
+	const { map, robotPose, isLoading, error, setGoal } = useMapData();
+
+	const [manualOffset, setManualOffset] = useState({ x: -0.85, y: 0.85 });
+
+	const handleGoalClick = (x: number, y: number) => {
+		console.log("📍 Clicked at:", x, y);
+		setGoal(x, y);
+	};
 
 	return (
 		<div className="min-h-screen w-screen bg-gray-100 p-8 flex flex-col items-center justify-center gap-6">
@@ -29,7 +37,9 @@ export function App() {
 							<MapCanvas
 								mapData={map}
 								robotPose={robotPose}
+								poseOffset={manualOffset}
 								className="w-full"
+								onGoalClick={handleGoalClick}
 							/>
 						</div>
 						<div className="text-xs text-gray-500 font-mono flex justify-between">

@@ -1,7 +1,7 @@
 import type { OccupancyGrid, RobotPose } from "../types";
 
 export interface IMapService {
-	fetchMap(): Promise<OccupancyGrid>;
+	onMapUpdate(callback: (map: OccupancyGrid) => void): void;
 	onRobotPoseUpdate(callback: (pose: RobotPose) => void): void;
-	offRobotPoseUpdate?(): void;
+	setGoal(x: number, y: number): void;
 }

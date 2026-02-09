@@ -13,48 +13,49 @@ export const useMapData = () => {
 		isLoading: true,
 		error: null,
 	});
+	const setGoal = (x: number, y: number) => {
+		mapService.setGoal(x, y);
+	};
 
 	useEffect(() => {
 		let isMounted = true;
 
-		const init = async () => {
-			try {
-				const mapData = await mapService.fetchMap();
-
-				if (isMounted) {
-					setState((prev) => ({
-						...prev,
-						map: mapData,
-						isLoading: false,
-					}));
-
-					mapService.onRobotPoseUpdate((pose) => {
-						if (isMounted) {
-							setState((prev) => ({
-								...prev,
-								robotPose: pose,
-							}));
-						}
-					});
-				}
-			} catch (err) {
-				if (isMounted) {
-					console.error(err);
-					setState((prev) => ({
-						...prev,
-						isLoading: false,
-						error: "Failed to connect to ROS",
-					}));
-				}
+		mapService.onMapUpdate((mapData) => {
+			if (isMounted) {
+				setState((prev) => ({
+					...prev,
+					map: mapData,
+					isLoading: false,
+					error: null,
+				}));
 			}
-		};
+		});
 
-		init();
+		mapService.onRobotPoseUpdate((pose) => {
+			if (isMounted) {
+				setState((prev) => ({
+					...prev,
+					robotPose: pose,
+				}));
+			}
+		});
+
+		const connectionTimeout = setTimeout(() => {
+			setState((prev) => {
+				if (prev.isLoading && isMounted) {
+					return {
+						...prev,
+					};
+				}
+				return prev;
+			});
+		}, 5000);
 
 		return () => {
 			isMounted = false;
+			clearTimeout(connectionTimeout);
 		};
 	}, []);
 
-	return state;
+	return { ...state, setGoal };
 };

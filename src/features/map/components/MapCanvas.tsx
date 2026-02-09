@@ -41,6 +41,7 @@ interface MapCanvasProps {
 	robotPose?: RobotPose | null;
 	onGoalClick?: (x: number, y: number) => void;
 	className?: string;
+	poseOffset?: { x: number; y: number };
 }
 
 interface GoalPosition {
@@ -55,6 +56,7 @@ export const MapCanvas = ({
 	robotPose,
 	onGoalClick,
 	className,
+	poseOffset = { x: 0, y: 0 },
 }: MapCanvasProps) => {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const containerRef = useRef<HTMLDivElement>(null);
@@ -136,17 +138,17 @@ export const MapCanvas = ({
 	const getRobotStyle = () => {
 		if (!robotPose) return { display: "none" };
 
-		const resolution = mapData.info.resolution;
+		const { resolution, width, height } = mapData.info;
 		const originX = mapData.info.origin.position.x;
 		const originY = mapData.info.origin.position.y;
-		const width = mapData.info.width;
-		const height = mapData.info.height;
 
-		const pixelX = (robotPose.x - originX) / resolution;
-		const pixelY_ROS = (robotPose.y - originY) / resolution;
+		const adjustedX = robotPose.x + poseOffset.x;
+		const adjustedY = robotPose.y + poseOffset.y;
+
+		const pixelX = (adjustedX - originX) / resolution;
+		const pixelY_ROS = (adjustedY - originY) / resolution;
 
 		const leftPct = (pixelX / width) * 100;
-
 		const topPct = (1 - pixelY_ROS / height) * 100;
 
 		const rotationDeg = -robotPose.rotation * (180 / Math.PI) + 90;
