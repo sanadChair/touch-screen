@@ -1,10 +1,9 @@
 import { useState, useEffect } from "preact/hooks";
 import type { IMapService } from "../services/IMapService";
-// import { MockMapService } from "../services/MockMapService";
-import { RosMapService } from "../services/RosMapService";
+import { MapServiceFactory } from "../services/MapServiceFactory";
 import type { MapDataState } from "../types";
 
-const mapService: IMapService = new RosMapService();
+const mapService: IMapService = MapServiceFactory.getService();
 
 export const useMapData = () => {
 	const [state, setState] = useState<MapDataState>({

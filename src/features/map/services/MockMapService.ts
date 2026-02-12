@@ -12,4 +12,5 @@ export class MockMapService implements IMapService {
 	setGoal(x: number, y: number): void {
 		console.log(`🎯 Sending Goal: X=${x}, Y=${y}`);
 	}
+	dispose(): void {}
 }

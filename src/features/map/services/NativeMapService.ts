@@ -2,14 +2,14 @@ import * as ROSLIB from "roslib";
 import type { IMapService } from "./IMapService";
 import type { OccupancyGrid, RobotPose } from "../types";
 
-export class RosMapService implements IMapService {
+export class NativeMapService implements IMapService {
 	private ros: ROSLIB.Ros;
 	private mapTopic: ROSLIB.Topic<any>;
 	private poseTopic: ROSLIB.Topic<any>;
 	private goalTopic: ROSLIB.Topic<any>;
 	private lastStamp: { sec: number; nanosec: number } | null = null;
 
-	private robotUrl = "ws://localhost:9090";
+	private robotUrl = import.meta.env.VITE_ROS_URL || "ws://localhost:9090";
 
 	constructor() {
 		this.ros = new ROSLIB.Ros({ url: this.robotUrl });
@@ -75,7 +75,7 @@ export class RosMapService implements IMapService {
 		console.log(`🎯 Preparing Goal: X=${x}, Y=${y}`);
 
 		const stamp =
-			this.lastStamp?.sec !== 0
+			this.lastStamp && this.lastStamp.sec !== 0
 				? this.lastStamp
 				: { sec: Math.floor(Date.now() / 1000), nanosec: 0 };
 
@@ -92,5 +92,10 @@ export class RosMapService implements IMapService {
 
 		console.log("📦 Publishing Message Payload:", message);
 		this.goalTopic.publish(message as any);
+	}
+
+	dispose(): void {
+		console.log("🔌 Disconnecting from ROS...");
+		this.ros.close();
 	}
 }

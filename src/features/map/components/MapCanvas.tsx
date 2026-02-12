@@ -39,7 +39,7 @@ const RobotIcon = () => (
 interface MapCanvasProps {
 	mapData: OccupancyGrid;
 	robotPose?: RobotPose | null;
-	onGoalClick?: (x: number, y: number) => void;
+	onGoalClick?: (x: number, y: number, yaw?: number) => void;
 	className?: string;
 	poseOffset?: { x: number; y: number };
 }
