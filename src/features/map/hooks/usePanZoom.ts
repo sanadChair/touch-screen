@@ -119,6 +119,7 @@ export const usePanZoom = (initialScale = 1) => {
 
 	return {
 		transform,
+		setTransform,
 		onPanStart,
 		onPanMove,
 		onPanEnd,

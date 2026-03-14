@@ -12,6 +12,7 @@
     "@tailwindcss/vite": "^4.1.18",
     "clsx": "^2.1.1",
     "eventemitter3": "^5.0.4",
+    "lucide-preact": "^0.576.0",
     "preact": "^10.27.2",
     "ros2d": "^0.10.0",
     "roslib": "^2.0.1",

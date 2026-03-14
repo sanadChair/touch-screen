@@ -7,7 +7,7 @@ export class MapServiceFactory {
 
 	static getService(): IMapService {
 		if (!this.instance) {
-			const type = import.meta.env.VITE_CONNECTION_TYPE;
+			const type = import.meta.env.VITE_CONNECTION_TYPE || "NATIVE";
 			if (type === "SERVER") {
 				console.log("Using Server Map Service");
 				this.instance = new ServerMapService();

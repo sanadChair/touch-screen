@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from "preact/hooks";
+import { useRef, useEffect, useState, useCallback } from "preact/hooks";
 import type { OccupancyGrid, RobotPose } from "../types";
 import { renderMapToCanvas } from "../utils/mapRenderer";
 import { usePanZoom } from "../hooks/usePanZoom";
@@ -42,6 +42,7 @@ interface MapCanvasProps {
 	onGoalClick?: (x: number, y: number, yaw?: number) => void;
 	className?: string;
 	poseOffset?: { x: number; y: number };
+	externalGoal?: { x: number; y: number } | null;
 }
 
 interface GoalPosition {
@@ -57,21 +58,35 @@ export const MapCanvas = ({
 	onGoalClick,
 	className,
 	poseOffset = { x: 0, y: 0 },
+	externalGoal = null,
 }: MapCanvasProps) => {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const containerRef = useRef<HTMLDivElement>(null);
 	const [goal, setGoal] = useState<GoalPosition | null>(null);
+	const hasAutoFitted = useRef(false);
 
 	const {
 		transform,
+		setTransform,
 		onPanStart,
 		onPanMove,
 		onPanEnd: originalOnPanEnd,
 		onWheel,
 		zoomIn,
 		zoomOut,
-		reset,
-	} = usePanZoom(0.8);
+	} = usePanZoom(1);
+
+	// Shared fit-to-screen: calculates the scale so the map fills
+	// the container's width or height (whichever is the limiting axis)
+	const fitToScreen = useCallback(() => {
+		if (!containerRef.current || !mapData || mapData.info.width === 0)
+			return;
+		const rect = containerRef.current.getBoundingClientRect();
+		const scaleX = rect.width / mapData.info.width;
+		const scaleY = rect.height / mapData.info.height;
+		const optimalScale = Math.min(scaleX, scaleY);
+		setTransform({ x: 0, y: 0, scale: optimalScale });
+	}, [mapData, setTransform]);
 
 	useEffect(() => {
 		if (canvasRef.current && mapData) {
@@ -86,6 +101,42 @@ export const MapCanvas = ({
 			renderMapToCanvas(canvasRef.current, mapData);
 		}
 	}, [mapData]);
+
+	// Auto fit-to-screen once after the map has rendered and the container has layout
+	useEffect(() => {
+		if (!mapData || hasAutoFitted.current) return;
+		// Wait for next animation frame so the browser has completed layout
+		const rafId = requestAnimationFrame(() => {
+			if (
+				containerRef.current &&
+				containerRef.current.getBoundingClientRect().width > 0
+			) {
+				fitToScreen();
+				hasAutoFitted.current = true;
+			}
+		});
+		return () => cancelAnimationFrame(rafId);
+	}, [mapData, fitToScreen]);
+
+	// Listen to external goal changes (e.g. from Quick Nav)
+	useEffect(() => {
+		if (externalGoal && mapData) {
+			const { x, y } = externalGoal;
+			const { resolution, width, height, origin } = mapData.info;
+
+			// Convert world coordinates back to percentages
+			const pixelX = (x - origin.position.x) / resolution;
+			const pixelY_ROS = (y - origin.position.y) / resolution;
+
+			const xPct = pixelX / width;
+			const yPct = 1 - pixelY_ROS / height;
+
+			setGoal({ xPct, yPct, worldX: x, worldY: y });
+		} else if (externalGoal === null && !onGoalClick) {
+			// Optional: clear goal if external goal is null, but here we just
+			// let local interaction override or keep it.
+		}
+	}, [externalGoal, mapData]);
 
 	useEffect(() => {
 		const container = containerRef.current;
@@ -283,7 +334,7 @@ export const MapCanvas = ({
 				<button
 					onClick={(e) => {
 						stopAllEvents(e);
-						reset();
+						fitToScreen();
 					}}
 					className="w-10 h-10 flex items-center justify-center bg-white hover:bg-gray-50 rounded-md active:bg-gray-100 transition-colors border border-gray-200 text-gray-700 shadow-sm"
 				>

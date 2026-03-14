@@ -9,7 +9,8 @@ export class NativeMapService implements IMapService {
 	private goalTopic: ROSLIB.Topic<any>;
 	private lastStamp: { sec: number; nanosec: number } | null = null;
 
-	private robotUrl = import.meta.env.VITE_ROS_URL || "ws://localhost:9090";
+	private robotUrl =
+		import.meta.env.VITE_ROS_URL || "ws://172.18.224.22:9090";
 
 	constructor() {
 		this.ros = new ROSLIB.Ros({ url: this.robotUrl });
@@ -43,7 +44,14 @@ export class NativeMapService implements IMapService {
 		console.log("📡 Subscribing to Map Updates...");
 
 		this.mapTopic.subscribe((message: any) => {
-			console.log("🗺️ New Map Update Received!");
+			console.log("🗺️ Raw Map Update Received!");
+			console.log("-> Map message keys:", Object.keys(message));
+			console.log("-> message.info:", message.info);
+			console.log("-> typeof message.data:", typeof message.data);
+			if (message.data) {
+				console.log("-> message.data length:", message.data.length);
+			}
+
 			const grid: OccupancyGrid = {
 				header: message.header,
 				info: message.info,
@@ -58,17 +66,24 @@ export class NativeMapService implements IMapService {
 		console.log("📍 Subscribing to /robot_pose...");
 
 		this.poseTopic.subscribe((message: any) => {
+			console.log("📍 Raw Pose Update Received:", message);
+
 			if (message.header && message.header.stamp) {
 				this.lastStamp = message.header.stamp;
 			}
-			const x = message.pose.position.x;
-			const y = message.pose.position.y;
 
-			const q = message.pose.orientation;
-			const siny_cosp = 2 * (q.w * q.z + q.x * q.y);
-			const cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z);
-			const rotation = Math.atan2(siny_cosp, cosy_cosp);
-			callback({ x, y, rotation });
+			try {
+				const x = message.pose.position.x;
+				const y = message.pose.position.y;
+
+				const q = message.pose.orientation;
+				const siny_cosp = 2 * (q.w * q.z + q.x * q.y);
+				const cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z);
+				const rotation = Math.atan2(siny_cosp, cosy_cosp);
+				callback({ x, y, rotation });
+			} catch (err) {
+				console.error("❌ Failed to parse robot_pose message:", err);
+			}
 		});
 	}
 	setGoal(x: number, y: number): void {
