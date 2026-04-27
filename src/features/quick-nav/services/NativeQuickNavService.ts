@@ -1,22 +1,17 @@
 import type { IQuickNavService } from "./IQuickNavService";
 import type { QuickNavDestination } from "../types";
-import { MOCK_DESTINATIONS } from "../mocks/mockDestinations";
-import { MapServiceFactory } from "../../map/services/MapServiceFactory";
+import { RoomService } from "../../map/services/RoomService";
 
 export class NativeQuickNavService implements IQuickNavService {
 	getDestinations(): QuickNavDestination[] {
-		// TODO: Replace with ROS service call when available
-		// For now, return mock destinations as fallback
-		return MOCK_DESTINATIONS;
+		// This is now handled in the hook via useRooms
+		return [];
 	}
 
 	navigateTo(destination: QuickNavDestination): void {
 		console.log(
-			`🚀 Quick Nav → ${destination.label} (${destination.point.x}, ${destination.point.y})`,
+			`🚀 Quick Nav → ${destination.label} (Using Room Navigation)`,
 		);
-		MapServiceFactory.getService().setGoal(
-			destination.point.x,
-			destination.point.y,
-		);
+		RoomService.getInstance().navigateToRoom(destination.label);
 	}
 }

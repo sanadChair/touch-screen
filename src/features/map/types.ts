@@ -1,3 +1,5 @@
+import type { DefinedRoom } from "./hooks/useRooms";
+
 export interface OccupancyGrid {
 	header: {
 		frame_id: string;
@@ -26,4 +28,15 @@ export interface MapDataState {
 	robotPose: RobotPose | null;
 	isLoading: boolean;
 	error: string | null;
+}
+export interface RoomAction {
+	id: string;
+	label: string;
+	iconName: string;
+	type: "toggle" | "slider" | "button";
+	value?: boolean | number;
+}
+
+export interface RoomWithActions extends DefinedRoom {
+	actions: RoomAction[];
 }

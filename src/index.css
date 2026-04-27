@@ -1,60 +1,47 @@
 @import "tailwindcss";
 
+@theme {
+	--font-sans: "Inter", system-ui, sans-serif;
+}
+
+@custom-variant dark (&:is(.dark *));
+
 :root {
-	font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+	font-family: var(--font-sans);
 	line-height: 1.5;
 	font-weight: 400;
-
-	color-scheme: light dark;
-	color: rgba(255, 255, 255, 0.87);
-	background-color: #242424;
 
 	font-synthesis: none;
 	text-rendering: optimizeLegibility;
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
 }
+
 body {
 	margin: 0;
 	padding: 0;
 	overflow-x: hidden;
 }
-a {
-	font-weight: 500;
-	color: #646cff;
-	text-decoration: inherit;
-}
-a:hover {
-	color: #535bf2;
+
+/* Touch improvements */
+button, a {
+	-webkit-tap-highlight-color: transparent;
+	touch-action: manipulation;
 }
 
-h1 {
-	font-size: 3.2em;
-	line-height: 1.1;
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+[role="button"]:focus-visible {
+	outline: 2px solid transparent;
+	outline-offset: 2px;
+	box-shadow: 0 0 0 4px var(--color-indigo-500, #6366f1);
 }
 
-button {
-	font-family: inherit;
-	cursor: pointer;
-	border: none;
-	background: none;
-	padding: 0;
-}
-button:focus,
-button:focus-visible {
-	outline: none;
+.dark button:focus-visible,
+.dark a:focus-visible,
+.dark input:focus-visible,
+.dark [role="button"]:focus-visible {
+	box-shadow: 0 0 0 4px var(--color-indigo-400, #818cf8);
 }
 
-@media (prefers-color-scheme: light) {
-	:root {
-		color: #213547;
-		background-color: #ffffff;
-	}
-	a:hover {
-		color: #747bff;
-	}
-}
-
-/* body {
-	cursor: none;
-} */

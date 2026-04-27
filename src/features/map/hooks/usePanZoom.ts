@@ -67,7 +67,10 @@ export const usePanZoom = (initialScale = 1) => {
 			lastDistance.current
 		) {
 			const newDistance = getDistance(e.touches);
-			const delta = newDistance / lastDistance.current;
+			const delta = newDistance / (lastDistance.current || newDistance);
+
+			// Track diagonal distance changed as "movement" to prevent clicks after pinch
+			totalMovement.current += Math.abs(newDistance - (lastDistance.current || newDistance));
 
 			lastDistance.current = newDistance;
 
@@ -76,6 +79,7 @@ export const usePanZoom = (initialScale = 1) => {
 				scale: Math.min(Math.max(0.1, prev.scale * delta), 5),
 			}));
 			return;
+
 		}
 
 		if (!isDragging.current) return;
@@ -103,9 +107,11 @@ export const usePanZoom = (initialScale = 1) => {
 		isDragging.current = false;
 		lastDistance.current = null;
 
-		const isClick = totalMovement.current < 5;
+		// Increased threshold to prevent jitter clicks (e.g. from 5 to 10)
+		const isClick = totalMovement.current < 10;
 		return isClick;
 	}, []);
+
 
 	const onWheel = useCallback((deltaY: number) => {
 		setTransform((prev) => {

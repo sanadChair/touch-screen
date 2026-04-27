@@ -1,24 +1,21 @@
 import * as ROSLIB from "roslib";
 import type { IMapService } from "./IMapService";
 import type { OccupancyGrid, RobotPose } from "../types";
+import { RosService } from "../../../shared/lib/RosService";
 
 export class NativeMapService implements IMapService {
 	private ros: ROSLIB.Ros;
 	private mapTopic: ROSLIB.Topic<any>;
 	private poseTopic: ROSLIB.Topic<any>;
-	private goalTopic: ROSLIB.Topic<any>;
+	private navigationActionClient: ROSLIB.ActionClient;
 	private lastStamp: { sec: number; nanosec: number } | null = null;
 
-	private robotUrl =
-		import.meta.env.VITE_ROS_URL || "ws://172.18.224.22:9090";
-
 	constructor() {
-		this.ros = new ROSLIB.Ros({ url: this.robotUrl });
-
-		this.ros.on("connection", () => {
-			console.log("✅ Connected to websocket");
-		});
-		this.ros.on("error", (error) => console.error("❌ Error: ", error));
+		const rosService = RosService.getInstance();
+		this.ros = rosService.getRos();
+		console.info(
+			`NativeMapService: using shared ROS connection at ${rosService.getUrl()}`,
+		);
 
 		this.mapTopic = new ROSLIB.Topic({
 			ros: this.ros,
@@ -33,25 +30,17 @@ export class NativeMapService implements IMapService {
 			messageType: "geometry_msgs/PoseStamped",
 		});
 
-		this.goalTopic = new ROSLIB.Topic({
+		this.navigationActionClient = new ROSLIB.ActionClient({
 			ros: this.ros,
-			name: "/goal_pose",
-			messageType: "geometry_msgs/PoseStamped",
+			serverName: "/navigate_to_pose",
+			actionName: "nav2_msgs/action/NavigateToPose",
 		});
 	}
 
 	onMapUpdate(callback: (map: OccupancyGrid) => void): void {
-		console.log("📡 Subscribing to Map Updates...");
+		console.log("NativeMapService: subscribing to map updates");
 
 		this.mapTopic.subscribe((message: any) => {
-			console.log("🗺️ Raw Map Update Received!");
-			console.log("-> Map message keys:", Object.keys(message));
-			console.log("-> message.info:", message.info);
-			console.log("-> typeof message.data:", typeof message.data);
-			if (message.data) {
-				console.log("-> message.data length:", message.data.length);
-			}
-
 			const grid: OccupancyGrid = {
 				header: message.header,
 				info: message.info,
@@ -63,11 +52,7 @@ export class NativeMapService implements IMapService {
 	}
 
 	onRobotPoseUpdate(callback: (pose: RobotPose) => void): void {
-		console.log("📍 Subscribing to /robot_pose...");
-
 		this.poseTopic.subscribe((message: any) => {
-			console.log("📍 Raw Pose Update Received:", message);
-
 			if (message.header && message.header.stamp) {
 				this.lastStamp = message.header.stamp;
 			}
@@ -77,40 +62,52 @@ export class NativeMapService implements IMapService {
 				const y = message.pose.position.y;
 
 				const q = message.pose.orientation;
-				const siny_cosp = 2 * (q.w * q.z + q.x * q.y);
-				const cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z);
-				const rotation = Math.atan2(siny_cosp, cosy_cosp);
+				const sinyCosp = 2 * (q.w * q.z + q.x * q.y);
+				const cosyCosp = 1 - 2 * (q.y * q.y + q.z * q.z);
+				const rotation = Math.atan2(sinyCosp, cosyCosp);
 				callback({ x, y, rotation });
 			} catch (err) {
-				console.error("❌ Failed to parse robot_pose message:", err);
+				console.error("NativeMapService: failed to parse robot_pose", err);
 			}
 		});
 	}
+
 	setGoal(x: number, y: number): void {
-		console.log(`🎯 Preparing Goal: X=${x}, Y=${y}`);
+		console.log(`NativeMapService: sending Nav2 goal x=${x}, y=${y}`);
 
 		const stamp =
 			this.lastStamp && this.lastStamp.sec !== 0
 				? this.lastStamp
 				: { sec: Math.floor(Date.now() / 1000), nanosec: 0 };
 
-		const message = {
-			header: {
-				frame_id: "map",
-				stamp: stamp,
+		const goal = new ROSLIB.Goal({
+			actionClient: this.navigationActionClient,
+			goalMessage: {
+				pose: {
+					header: {
+						frame_id: "map",
+						stamp,
+					},
+					pose: {
+						position: { x, y, z: 0.0 },
+						orientation: { x: 0.0, y: 0.0, z: 0.0, w: 1.0 },
+					},
+				},
 			},
-			pose: {
-				position: { x: x, y: y, z: 0.0 },
-				orientation: { x: 0.0, y: 0.0, z: 0.0, w: 1.0 },
-			},
-		};
+		});
 
-		console.log("📦 Publishing Message Payload:", message);
-		this.goalTopic.publish(message as any);
+		goal.on("feedback", (feedback) => {
+			console.log("NativeMapService: navigation feedback", feedback);
+		});
+
+		goal.on("result", (result) => {
+			console.log("NativeMapService: navigation result", result);
+		});
+
+		goal.send();
 	}
 
 	dispose(): void {
-		console.log("🔌 Disconnecting from ROS...");
-		this.ros.close();
+		console.log("NativeMapService disposed");
 	}
 }
