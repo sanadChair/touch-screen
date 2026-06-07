@@ -1,64 +1,29 @@
-import {
-	useRef,
-	useEffect,
-	useState,
-	useCallback,
-	useMemo,
-} from "preact/hooks";
-import type { OccupancyGrid, RobotPose } from "../types";
-import { renderMapToCanvas } from "../utils/mapRenderer";
-import { usePanZoom } from "../hooks/usePanZoom";
-import { cn } from "../../../shared/lib/utils";
-import { refineMapHeavy, refineMapLight } from "../utils/mapFilter";
-import { ZoomIn, ZoomOut, Maximize, MapPin, SquarePlus, Map, Home, Utensils, BedDouble, Monitor, Coffee, Briefcase, Sofa } from "lucide-preact";
+import { useCallback, useEffect, useMemo, useRef, useState } from "preact/hooks";
+import { BedDouble, Briefcase, Home, Map, MapPin, Maximize, Monitor, Sofa, SquarePlus, Utensils, Volume2, ZoomIn, ZoomOut } from "lucide-preact";
+import { SmartHomeServiceFactory } from "../../smart-home/services/SmartHomeServiceFactory";
 import { useTheme } from "../../../shared/hooks/useTheme";
+import { cn } from "../../../shared/lib/utils";
+import { usePanZoom } from "../hooks/usePanZoom";
 import { useRooms } from "../hooks/useRooms";
-import { RoomModal } from "./RoomModal";
+import type { GoalPoint, OccupancyGrid, PathPoint, RobotPose, RoomWithActions } from "../types";
+import { refineMapHeavy, refineMapLight } from "../utils/mapFilter";
+import { renderMapToCanvas } from "../utils/mapRenderer";
 import { RoomActionsOverlay } from "./RoomActionsOverlay";
-import type { RoomWithActions } from "../types";
-
+import { RoomModal } from "./RoomModal";
 
 const CUSTOM_CURSOR = `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="6" stroke="%233b82f6" stroke-width="2" fill="rgba(59, 130, 246, 0.2)"/><circle cx="16" cy="16" r="1.5" fill="%23ef4444"/><path d="M16 2L16 8M16 30L16 24M2 16L8 16M30 16L24 16" stroke="%233b82f6" stroke-width="2" stroke-linecap="round"/></svg>') 16 16, crosshair`;
-const PinIcon = () => (
-	<MapPin
-		className="w-full h-full text-red-500 drop-shadow-md"
-		strokeWidth={2.5}
-		style={{ filter: "drop-shadow(0px 2px 4px rgba(239, 68, 68, 0.4))" }}
-	/>
-);
+const ICON_MAP: Record<string, typeof Home> = { Sofa, Utensils, BedDouble, Monitor, Briefcase, Home, MapPin, Volume2 };
 
-const ICON_MAP: Record<string, typeof Home> = {
-	Sofa,
-	Utensils,
-	BedDouble,
-	Coffee,
-	Monitor,
-	Briefcase,
-	Home,
-	MapPin,
-};
+const PinIcon = () => <MapPin className="w-full h-full text-red-500 drop-shadow-md" strokeWidth={2.5} style={{ filter: "drop-shadow(0px 2px 4px rgba(239, 68, 68, 0.4))" }} />;
 
 const RobotIcon = () => (
 	<div className="relative w-full h-full flex items-center justify-center">
-		{/* Outer sonar pulse */}
 		<div className="absolute w-[250%] h-[250%] rounded-full bg-blue-500/20 animate-[ping_2.5s_cubic-bezier(0,0,0.2,1)_infinite]" />
-		{/* Inner stable glow */}
 		<div className="absolute w-[150%] h-[150%] rounded-full bg-blue-500/30 blur-md" />
-		{/* Core chassis */}
 		<div className="relative z-10 w-full h-full bg-slate-900 rounded-full border-[2.5px] border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.6)] flex items-center justify-center">
-			{/* Directional Chevron */}
-			<svg 
-				viewBox="0 0 24 24" 
-				fill="none" 
-				className="w-3/4 h-3/4 text-blue-400 transform -translate-y-[1px]"
-				stroke="currentColor" 
-				strokeWidth="3.5" 
-				strokeLinecap="round" 
-				strokeLinejoin="round"
-			>
+			<svg viewBox="0 0 24 24" fill="none" className="w-3/4 h-3/4 text-blue-400 transform -translate-y-[1px]" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
 				<path d="M12 2L4.5 20.5L12 17L19.5 20.5L12 2Z" className="fill-blue-500/50" />
 			</svg>
-			{/* Core Energy Center */}
 			<div className="absolute w-2 h-2 bg-white rounded-full shadow-[0_0_8px_rgba(255,255,255,1)]" />
 		</div>
 	</div>
@@ -67,11 +32,11 @@ const RobotIcon = () => (
 interface MapCanvasProps {
 	mapData: OccupancyGrid;
 	robotPose?: RobotPose | null;
-	onGoalClick?: (x: number, y: number, yaw?: number) => void;
+	onGoalClick?: (x: number, y: number, label?: string) => void;
 	className?: string;
-	poseOffset?: { x: number; y: number };
-	externalGoal?: { x: number; y: number } | null;
+	externalGoal?: GoalPoint | null;
 	isMapStable?: boolean;
+	pathHistory?: PathPoint[];
 }
 
 interface GoalPosition {
@@ -81,228 +46,213 @@ interface GoalPosition {
 	worldY: number;
 }
 
-export const MapCanvas = ({
-	mapData,
-	robotPose,
-	onGoalClick,
-	className,
-	poseOffset = { x: 0, y: 0 },
-	externalGoal = null,
-	isMapStable = false,
-}: MapCanvasProps) => {
+interface RoomPixelBounds {
+	minX: number;
+	maxX: number;
+	minY: number;
+	maxY: number;
+}
+
+export const MapCanvas = ({ mapData, robotPose, onGoalClick, className, externalGoal = null, isMapStable = false, pathHistory = [] }: MapCanvasProps) => {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const containerRef = useRef<HTMLDivElement>(null);
+	const displayPoseRef = useRef<RobotPose | null>(robotPose ?? null);
+	const animationFrameRef = useRef<number | null>(null);
+	const [displayPose, setDisplayPose] = useState<RobotPose | null>(robotPose ?? null);
 	const [goal, setGoal] = useState<GoalPosition | null>(null);
 	const hasAutoFitted = useRef(false);
 	const { resolvedTheme } = useTheme();
-
-	// Room Segmenting State
+	const smartHomeService = SmartHomeServiceFactory.getService();
 	const [isAddingRoom, setIsAddingRoom] = useState(false);
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [pendingRoom, setPendingRoom] = useState<any>(null);
-	const { rooms, saveRoom, getActionsForRoom } = useRooms();
+	const { rooms, saveRoom, getActionsForRoom, refreshRooms } = useRooms();
 	const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
-
-	
 	const [dragStart, setDragStart] = useState<{ pixelX: number; pixelY_ROS: number } | null>(null);
 	const [dragCurrent, setDragCurrent] = useState<{ pixelX: number; pixelY_ROS: number } | null>(null);
+	const { transform, setTransform, onPanStart, onPanMove, onPanEnd: originalOnPanEnd, onWheel, zoomIn, zoomOut } = usePanZoom(1);
 
-	const {
-		transform,
-		setTransform,
-		onPanStart,
-		onPanMove,
-		onPanEnd: originalOnPanEnd,
-		onWheel,
-		zoomIn,
-		zoomOut,
-	} = usePanZoom(1);
+	const toPixelBounds = useCallback(
+		(room: { minX: number; maxX: number; minY: number; maxY: number }): RoomPixelBounds => ({
+			minX: (room.minX - mapData.info.origin.position.x) / mapData.info.resolution,
+			maxX: (room.maxX - mapData.info.origin.position.x) / mapData.info.resolution,
+			minY: (room.minY - mapData.info.origin.position.y) / mapData.info.resolution,
+			maxY: (room.maxY - mapData.info.origin.position.y) / mapData.info.resolution,
+		}),
+		[
+			mapData.info.origin.position.x,
+			mapData.info.origin.position.y,
+			mapData.info.resolution,
+		],
+	);
 
-	// Shared fit-to-screen: calculates the scale so the map fills
-	// the container's width or height (whichever is the limiting axis)
 	const fitToScreen = useCallback(() => {
-		if (!containerRef.current || !mapData || mapData.info.width === 0)
-			return;
+		if (!containerRef.current || mapData.info.width === 0) return;
 		const rect = containerRef.current.getBoundingClientRect();
-		const scaleX = rect.width / mapData.info.width;
-		const scaleY = rect.height / mapData.info.height;
-		const optimalScale = Math.min(scaleX, scaleY);
+		const optimalScale = Math.min(rect.width / mapData.info.width, rect.height / mapData.info.height);
 		setTransform({ x: 0, y: 0, scale: optimalScale });
 		setSelectedRoomId(null);
 	}, [mapData, setTransform]);
 
 	const zoomToRoom = useCallback((room: any) => {
-		if (!containerRef.current || !mapData) return;
-		
+		if (!containerRef.current) return;
 		const rect = containerRef.current.getBoundingClientRect();
-		const { width, height } = mapData.info;
-		
-		// Target room dimensions in pixels
-		const roomWidth = room.maxX - room.minX;
-		const roomHeight = room.maxY - room.minY;
-		
-		// Calculate optimal scale to fit the room with padding
-		const paddingFactor = 1.5; // 50% padding
-		const scaleX = rect.width / (roomWidth * paddingFactor);
-		const scaleY = rect.height / (roomHeight * paddingFactor);
-		const optimalScale = Math.min(scaleX, scaleY);
-		
-		// Center of the room in pixel coordinates
-		const pixelCenterX = (room.minX + room.maxX) / 2;
-		const pixelCenterY = (room.minY + room.maxY) / 2;
-		
-		// Convert pixel center to world center (relative to map center)
-		// Map is centered in its own div (width/height)
-		// We need to translate so that the pixel center is at the center of the viewport
-		const offsetX = (width / 2 - pixelCenterX) * optimalScale;
-		const offsetY = (pixelCenterY - height / 2) * optimalScale; // Canvas is flipped Y, but we are calculating relative translation
-		
-		setTransform({ 
-			x: offsetX, 
-			y: offsetY, 
-			scale: optimalScale 
+		const pixelBounds = toPixelBounds(room);
+		const roomWidth = pixelBounds.maxX - pixelBounds.minX;
+		const roomHeight = pixelBounds.maxY - pixelBounds.minY;
+		const optimalScale = Math.min(rect.width / (roomWidth * 1.5), rect.height / (roomHeight * 1.5));
+		const pixelCenterX = (pixelBounds.minX + pixelBounds.maxX) / 2;
+		const pixelCenterY = (pixelBounds.minY + pixelBounds.maxY) / 2;
+		setTransform({
+			x: (mapData.info.width / 2 - pixelCenterX) * optimalScale,
+			y: (pixelCenterY - mapData.info.height / 2) * optimalScale,
+			scale: optimalScale,
 		});
 		setSelectedRoomId(room.id);
-	}, [mapData, setTransform]);
+	}, [mapData, setTransform, toPixelBounds]);
 
+	const refinedMap = useMemo(() => (isMapStable ? refineMapHeavy(mapData) : refineMapLight(mapData)), [isMapStable, mapData]);
 
-	// Memoize the refined map — heavy for stable, light during SLAM
-	const refinedMap = useMemo(() => {
-		if (!mapData) return null;
-		return isMapStable ? refineMapHeavy(mapData) : refineMapLight(mapData);
-	}, [mapData, isMapStable]);
+	const selectedRoom = useMemo(() => {
+		if (!selectedRoomId) return null;
+		const room = rooms.find((item) => item.id === selectedRoomId);
+		return room ? ({ ...room, actions: getActionsForRoom(room) } as RoomWithActions) : null;
+	}, [getActionsForRoom, rooms, selectedRoomId]);
+
+	const trailSegments = useMemo(() => {
+		if (pathHistory.length < 2) return [];
+		return pathHistory.slice(1).map((point, index) => {
+			const previous = pathHistory[index];
+			const startX = (previous.x - mapData.info.origin.position.x) / mapData.info.resolution;
+			const startY = mapData.info.height - (previous.y - mapData.info.origin.position.y) / mapData.info.resolution;
+			const endX = (point.x - mapData.info.origin.position.x) / mapData.info.resolution;
+			const endY = mapData.info.height - (point.y - mapData.info.origin.position.y) / mapData.info.resolution;
+			return { startX, startY, endX, endY, opacity: (index + 1) / pathHistory.length };
+		});
+	}, [mapData.info.height, mapData.info.origin.position.x, mapData.info.origin.position.y, mapData.info.resolution, pathHistory]);
 
 	useEffect(() => {
-		if (canvasRef.current && refinedMap) {
-			const ctx = canvasRef.current.getContext("2d");
-			if (ctx)
-				ctx.clearRect(
-					0,
-					0,
-					canvasRef.current.width,
-					canvasRef.current.height,
-				);
-			renderMapToCanvas(canvasRef.current, refinedMap, resolvedTheme);
-		}
+		if (!canvasRef.current) return;
+		const ctx = canvasRef.current.getContext("2d");
+		if (ctx) ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+		renderMapToCanvas(canvasRef.current, refinedMap, resolvedTheme);
 	}, [refinedMap, resolvedTheme]);
 
-	// Auto fit-to-screen once after the map has rendered and the container has layout
 	useEffect(() => {
-		if (!mapData || hasAutoFitted.current) return;
-		// Wait for next animation frame so the browser has completed layout
+		if (hasAutoFitted.current) return;
 		const rafId = requestAnimationFrame(() => {
-			if (
-				containerRef.current &&
-				containerRef.current.getBoundingClientRect().width > 0
-			) {
+			if (containerRef.current?.getBoundingClientRect().width) {
 				fitToScreen();
 				hasAutoFitted.current = true;
 			}
 		});
 		return () => cancelAnimationFrame(rafId);
-	}, [mapData, fitToScreen]);
+	}, [fitToScreen]);
 
-	// Listen to external goal changes (e.g. from Quick Nav)
 	useEffect(() => {
-		if (externalGoal && mapData) {
-			const { x, y } = externalGoal;
-			const { resolution, width, height, origin } = mapData.info;
-
-			// Convert world coordinates back to percentages
-			const pixelX = (x - origin.position.x) / resolution;
-			const pixelY_ROS = (y - origin.position.y) / resolution;
-
-			const xPct = pixelX / width;
-			const yPct = 1 - pixelY_ROS / height;
-
-			setGoal({ xPct, yPct, worldX: x, worldY: y });
-
-			// Check if this matches a saved room to trigger zooming and actions
-			const matchingRoom = rooms.find(r => 
-				Math.abs(r.worldX - x) < 0.01 && 
-				Math.abs(r.worldY - y) < 0.01
-			);
-			if (matchingRoom) {
-				zoomToRoom(matchingRoom);
-			} else {
-				setSelectedRoomId(null);
-			}
-		} else if (externalGoal === null && !onGoalClick) {
-
-			// Optional: clear goal if external goal is null, but here we just
-			// let local interaction override or keep it.
-		}
-	}, [externalGoal, mapData]);
+		if (!externalGoal) return;
+		const pixelX = (externalGoal.x - mapData.info.origin.position.x) / mapData.info.resolution;
+		const pixelY_ROS = (externalGoal.y - mapData.info.origin.position.y) / mapData.info.resolution;
+		setGoal({
+			xPct: pixelX / mapData.info.width,
+			yPct: 1 - pixelY_ROS / mapData.info.height,
+			worldX: externalGoal.x,
+			worldY: externalGoal.y,
+		});
+		const matchingRoom = rooms.find((room) => Math.abs(room.worldX - externalGoal.x) < 0.01 && Math.abs(room.worldY - externalGoal.y) < 0.01);
+		if (matchingRoom) zoomToRoom(matchingRoom);
+	}, [externalGoal, mapData.info.height, mapData.info.origin.position.x, mapData.info.origin.position.y, mapData.info.resolution, mapData.info.width, rooms, zoomToRoom]);
 
 	useEffect(() => {
 		const container = containerRef.current;
 		if (!container) return;
-		const handleWheel = (e: WheelEvent) => {
-			e.preventDefault();
-			e.stopPropagation();
-			onWheel(e.deltaY);
+		const handleWheel = (event: WheelEvent) => {
+			event.preventDefault();
+			event.stopPropagation();
+			onWheel(event.deltaY);
 		};
 		container.addEventListener("wheel", handleWheel, { passive: false });
 		return () => container.removeEventListener("wheel", handleWheel);
 	}, [onWheel]);
 
-	const getGridCoords = (e: MouseEvent | TouchEvent) => {
-		if (!canvasRef.current || !mapData) return null;
-		const clientX = e instanceof MouseEvent ? e.clientX : e.changedTouches[0].clientX;
-		const clientY = e instanceof MouseEvent ? e.clientY : e.changedTouches[0].clientY;
-		
+	useEffect(() => {
+		if (!robotPose) return;
+		const targetPose = { ...robotPose };
+		if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+
+		const step = () => {
+			const currentPose = displayPoseRef.current ?? targetPose;
+			const nextPose = {
+				x: currentPose.x + (targetPose.x - currentPose.x) * 0.25,
+				y: currentPose.y + (targetPose.y - currentPose.y) * 0.25,
+				rotation: currentPose.rotation + (targetPose.rotation - currentPose.rotation) * 0.25,
+			};
+			displayPoseRef.current = nextPose;
+			setDisplayPose(nextPose);
+
+			const done = Math.abs(nextPose.x - targetPose.x) < 0.005 && Math.abs(nextPose.y - targetPose.y) < 0.005;
+			if (!done) {
+				animationFrameRef.current = requestAnimationFrame(step);
+			} else {
+				displayPoseRef.current = targetPose;
+				setDisplayPose(targetPose);
+			}
+		};
+
+		animationFrameRef.current = requestAnimationFrame(step);
+		return () => {
+			if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+		};
+	}, [robotPose]);
+
+	const getGridCoords = (event: MouseEvent | TouchEvent) => {
+		if (!canvasRef.current) return null;
+		const clientX = event instanceof MouseEvent ? event.clientX : event.changedTouches[0].clientX;
+		const clientY = event instanceof MouseEvent ? event.clientY : event.changedTouches[0].clientY;
 		const rect = canvasRef.current.getBoundingClientRect();
 		const xPct = (clientX - rect.left) / rect.width;
 		const yPct = (clientY - rect.top) / rect.height;
-
 		if (xPct < 0 || xPct > 1 || yPct < 0 || yPct > 1) return null;
-
-		const pixelX = xPct * mapData.info.width;
-		const pixelY_ROS = (1 - yPct) * mapData.info.height;
-		
-		return { pixelX, pixelY_ROS, xPct, yPct };
+		return { pixelX: xPct * mapData.info.width, pixelY_ROS: (1 - yPct) * mapData.info.height, xPct, yPct };
 	};
 
-	const handleDragStart = (e: MouseEvent | TouchEvent) => {
-		if (!isAddingRoom) {
-			onPanStart(e);
-			return;
-		}
-		const coords = getGridCoords(e);
-		if (coords) {
-			setDragStart(coords);
-			setDragCurrent(coords);
-			setPendingRoom(null);
-		}
+	const handleDragStart = (event: MouseEvent | TouchEvent) => {
+		if (!isAddingRoom) return onPanStart(event);
+		const coords = getGridCoords(event);
+		if (!coords) return;
+		setDragStart(coords);
+		setDragCurrent(coords);
+		setPendingRoom(null);
 	};
 
-	const handleDragMove = (e: MouseEvent | TouchEvent) => {
-		if (!isAddingRoom) {
-			onPanMove(e);
-			return;
-		}
-		if (dragStart) {
-			const coords = getGridCoords(e);
-			if (coords) {
-				setDragCurrent(coords);
-			}
-		}
+	const handleDragMove = (event: MouseEvent | TouchEvent) => {
+		if (!isAddingRoom) return onPanMove(event);
+		if (!dragStart) return;
+		const coords = getGridCoords(event);
+		if (coords) setDragCurrent(coords);
 	};
 
-	const handleInteractionEnd = (e: MouseEvent | TouchEvent) => {
+	const handleInteractionEnd = (event: MouseEvent | TouchEvent) => {
 		if (isAddingRoom) {
 			if (dragStart && dragCurrent) {
 				const minX = Math.min(dragStart.pixelX, dragCurrent.pixelX);
 				const maxX = Math.max(dragStart.pixelX, dragCurrent.pixelX);
 				const minY = Math.min(dragStart.pixelY_ROS, dragCurrent.pixelY_ROS);
 				const maxY = Math.max(dragStart.pixelY_ROS, dragCurrent.pixelY_ROS);
-				
-				// Minimum size check (5x5 pixels)
 				if (Math.abs(maxX - minX) > 5 && Math.abs(maxY - minY) > 5) {
-					const worldX = mapData.info.origin.position.x + ((minX + maxX) / 2) * mapData.info.resolution;
-					const worldY = mapData.info.origin.position.y + ((minY + maxY) / 2) * mapData.info.resolution;
-					
-					setPendingRoom({ minX, maxX, minY, maxY, worldX, worldY });
+					setPendingRoom({
+						pixelMinX: minX,
+						pixelMaxX: maxX,
+						pixelMinY: minY,
+						pixelMaxY: maxY,
+						minX: mapData.info.origin.position.x + minX * mapData.info.resolution,
+						maxX: mapData.info.origin.position.x + maxX * mapData.info.resolution,
+						minY: mapData.info.origin.position.y + minY * mapData.info.resolution,
+						maxY: mapData.info.origin.position.y + maxY * mapData.info.resolution,
+						worldX: mapData.info.origin.position.x + ((minX + maxX) / 2) * mapData.info.resolution,
+						worldY: mapData.info.origin.position.y + ((minY + maxY) / 2) * mapData.info.resolution,
+						worldTheta: 0,
+					});
 					setIsModalOpen(true);
 				}
 			}
@@ -311,356 +261,165 @@ export const MapCanvas = ({
 			return;
 		}
 
-		// Handle normal map navigation clicks
-		const isClick = originalOnPanEnd();
-		if (!isClick) return;
-
-		const coords = getGridCoords(e);
+		if (!originalOnPanEnd()) return;
+		const coords = getGridCoords(event);
 		if (!coords) return;
-
 		const worldX = mapData.info.origin.position.x + coords.pixelX * mapData.info.resolution;
 		const worldY = mapData.info.origin.position.y + coords.pixelY_ROS * mapData.info.resolution;
-
 		setGoal({ xPct: coords.xPct, yPct: coords.yPct, worldX, worldY });
-
-		if (onGoalClick) {
-			onGoalClick(worldX, worldY);
-		}
+		onGoalClick?.(worldX, worldY);
 	};
 
-	const stopAllEvents = (e: Event) => {
-		e.stopPropagation();
-	};
+	const stopAllEvents = (event: Event) => event.stopPropagation();
 
 	const getRobotStyle = () => {
-		if (!robotPose) return { display: "none" };
-
-		const { resolution, width, height } = mapData.info;
-		const originX = mapData.info.origin.position.x;
-		const originY = mapData.info.origin.position.y;
-
-		const adjustedX = robotPose.x + poseOffset.x;
-		const adjustedY = robotPose.y + poseOffset.y;
-
-		const pixelX = (adjustedX - originX) / resolution;
-		const pixelY_ROS = (adjustedY - originY) / resolution;
-
-		const leftPct = (pixelX / width) * 100;
-		const topPct = (1 - pixelY_ROS / height) * 100;
-
-		const rotationDeg = -robotPose.rotation * (180 / Math.PI) + 90;
-
+		if (!displayPose) return { display: "none" };
+		const pixelX = (displayPose.x - mapData.info.origin.position.x) / mapData.info.resolution;
+		const pixelY_ROS = (displayPose.y - mapData.info.origin.position.y) / mapData.info.resolution;
 		return {
-			left: `${leftPct}%`,
-			top: `${topPct}%`,
-			transform: `translate(-50%, -50%) rotate(${rotationDeg}deg)`,
+			left: `${(pixelX / mapData.info.width) * 100}%`,
+			top: `${(1 - pixelY_ROS / mapData.info.height) * 100}%`,
+			transform: `translate(-50%, -50%) rotate(${-displayPose.rotation * (180 / Math.PI) + 90}deg)`,
 			transformOrigin: "center center",
 		};
 	};
 
-	const selectedRoom = useMemo(() => {
-		if (!selectedRoomId) return null;
-		const room = rooms.find(r => r.id === selectedRoomId);
-		if (!room) return null;
-		return {
-			...room,
-			actions: getActionsForRoom(room.iconName)
-		} as RoomWithActions;
-	}, [selectedRoomId, rooms, getActionsForRoom]);
-
+	const triggerRoomAction = async (action: any, value: boolean | number) => {
+		await smartHomeService.executeAction(action, value);
+		await refreshRooms();
+	};
 
 	return (
 		<>
 			<div
 				ref={containerRef}
-			className={cn(
-				"relative w-full h-[600px] bg-slate-200 dark:bg-slate-900 shadow-2xl rounded-xl touch-none isolate overflow-hidden select-none",
-				className,
-			)}
-
-			style={{ cursor: isAddingRoom ? "crosshair" : CUSTOM_CURSOR }}
-			onMouseDown={handleDragStart}
-			onMouseMove={handleDragMove}
-			onMouseUp={handleInteractionEnd}
-			onMouseLeave={() => {
-				originalOnPanEnd();
-				setDragStart(null);
-				setDragCurrent(null);
-			}}
-			onMouseDownCapture={() => {
-				// Prevent room clicks from triggering pan start if needed, 
-				// but here we just want to allow normal map interactions.
-			}}
-
-			onTouchStart={(e) => {
-				e.preventDefault();
-				handleDragStart(e);
-			}}
-			onTouchMove={(e) => {
-				e.preventDefault();
-				handleDragMove(e);
-			}}
-			onTouchEnd={handleInteractionEnd}
-		>
-			<div
-				className="absolute inset-0 overflow-hidden rounded-xl bg-white dark:bg-slate-900 transition-colors duration-300"
+				className={cn("relative w-full h-[600px] bg-slate-200 dark:bg-slate-900 shadow-2xl rounded-xl touch-none isolate overflow-hidden select-none", className)}
+				style={{ cursor: isAddingRoom ? "crosshair" : CUSTOM_CURSOR }}
+				onMouseDown={handleDragStart}
+				onMouseMove={handleDragMove}
+				onMouseUp={handleInteractionEnd}
+				onMouseLeave={() => { originalOnPanEnd(); setDragStart(null); setDragCurrent(null); }}
+				onTouchStart={(event) => { event.preventDefault(); handleDragStart(event); }}
+				onTouchMove={(event) => { event.preventDefault(); handleDragMove(event); }}
+				onTouchEnd={handleInteractionEnd}
 			>
-				<div
-					style={{
-						transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
-						willChange: "transform",
-						transformOrigin: "center center",
-						transition: "transform 0.1s ease-out",
-						width: "100%",
-						height: "100%",
-						display: "flex",
-						alignItems: "center",
-						justifyContent: "center",
-					}}
-				>
-					<div
-						className="relative"
-						style={{
-							width: mapData.info.width,
-							height: mapData.info.height,
-						}}
-					>
-						<canvas
-							ref={canvasRef}
-							className="w-full h-full scale-y-[-1]"
-							style={{
-								filter: "drop-shadow(0 0 8px rgba(0,0,0,0.1))",
-							}}
-						/>
+				<div className="absolute inset-0 overflow-hidden rounded-xl bg-white dark:bg-slate-900 transition-colors duration-300">
+					<div style={{ transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`, willChange: "transform", transformOrigin: "center center", transition: "transform 0.1s ease-out", width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+						<div className="relative" style={{ width: mapData.info.width, height: mapData.info.height }}>
+							<canvas ref={canvasRef} className="w-full h-full scale-y-[-1]" style={{ filter: "drop-shadow(0 0 8px rgba(0,0,0,0.1))" }} />
+							<svg className="absolute inset-0 w-full h-full pointer-events-none z-20" viewBox={`0 0 ${mapData.info.width} ${mapData.info.height}`} preserveAspectRatio="none">
+								{trailSegments.map((segment, index) => (
+									<line key={`${segment.endX}-${segment.endY}-${index}`} x1={segment.startX} y1={segment.startY} x2={segment.endX} y2={segment.endY} stroke="rgb(59 130 246)" strokeWidth={4} strokeOpacity={segment.opacity * 0.8} strokeLinecap="round" />
+								))}
+							</svg>
 
-						{robotPose && (
-							<div
-								className="absolute z-50 pointer-events-none transition-transform duration-75"
-								style={{
-									...getRobotStyle(),
-									width: "40px",
-									height: "40px",
-									scale: `${1 / transform.scale}`,
-								}}
-							>
-								<RobotIcon />
-							</div>
-						)}
-
-						{goal && (
-							<div
-								className="absolute z-40 pointer-events-none"
-								style={{
-									left: `${goal.xPct * 100}%`,
-									top: `${goal.yPct * 100}%`,
-									width: "32px",
-									height: "32px",
-									transition: "transform 0.1s ease-out",
-									transform: `translate(-50%, -100%) scale(${1 / transform.scale})`,
-									transformOrigin: "bottom center",
-								}}
-							>
-								<PinIcon />
-							</div>
-						)}
-
-						{/* Render Active Drag Highlight */}
-						{isAddingRoom && dragStart && dragCurrent && (
-							<div
-								className="absolute border-2 border-indigo-500 bg-indigo-500/10 pointer-events-none z-50"
-								style={{
-									left: `${(Math.min(dragStart.pixelX, dragCurrent.pixelX) / mapData.info.width) * 100}%`,
-									top: `${(1 - Math.max(dragStart.pixelY_ROS, dragCurrent.pixelY_ROS) / mapData.info.height) * 100}%`,
-									width: `${(Math.abs(dragCurrent.pixelX - dragStart.pixelX) / mapData.info.width) * 100}%`,
-									height: `${(Math.abs(dragCurrent.pixelY_ROS - dragStart.pixelY_ROS) / mapData.info.height) * 100}%`,
-								}}
-							/>
-						)}
-
-						{/* Render Pending Room Bounds */}
-						{pendingRoom && isModalOpen && (
-							<div
-								className="absolute border-[3px] border-emerald-400 bg-emerald-500/10 shadow-[0_0_15px_rgba(52,211,153,0.3)] rounded-lg pointer-events-none z-40 animate-pulse"
-								style={{
-									left: `${(pendingRoom.minX / mapData.info.width) * 100}%`,
-									top: `${(1 - pendingRoom.maxY / mapData.info.height) * 100}%`,
-									width: `${((pendingRoom.maxX - pendingRoom.minX) / mapData.info.width) * 100}%`,
-									height: `${((pendingRoom.maxY - pendingRoom.minY) / mapData.info.height) * 100}%`,
-								}}
-							/>
-						)}
-
-						{/* Render Saved Rooms Bounds */}
-						{rooms.map((room) => {
-							const { width, height } = mapData.info;
-							const leftPct = (room.minX / width) * 100;
-							const topPct = (1 - room.maxY / height) * 100;
-							const widthPct = ((room.maxX - room.minX) / width) * 100;
-							const heightPct = ((room.maxY - room.minY) / height) * 100;
-
-							const IconComponent = ICON_MAP[room.iconName] || MapPin;
-							const isSelected = selectedRoomId === room.id;
-
-							return (
-								<div
-									key={room.id}
-									className={cn(
-										"absolute border-2 rounded-lg flex flex-col items-center justify-center transition-all z-30 overflow-hidden pointer-events-none",
-										isSelected 
-											? "border-emerald-500 bg-emerald-500/20 shadow-[0_0_20px_rgba(16,185,129,0.4)] ring-4 ring-emerald-500/20" 
-											: "border-indigo-500/50 bg-indigo-500/10 shadow-[0_0_10px_rgba(99,102,241,0.1)]"
-									)}
-									style={{
-										left: `${leftPct}%`,
-										top: `${topPct}%`,
-										width: `${widthPct}%`,
-										height: `${heightPct}%`,
-									}}
-								>
-									<div 
-										onMouseDown={(e) => {
-											e.stopPropagation();
-											onPanStart(e);
-										}}
-										onMouseUp={(e) => {
-											e.stopPropagation();
-											const isClick = originalOnPanEnd();
-											if (isClick) zoomToRoom(room);
-										}}
-										onTouchStart={(e) => {
-											e.stopPropagation();
-											onPanStart(e);
-										}}
-										onTouchEnd={(e) => {
-											e.stopPropagation();
-											const isClick = originalOnPanEnd();
-											if (isClick) zoomToRoom(room);
-										}}
-										style={{ 
-											scale: `${1 / Math.max(0.5, transform.scale)}`, 
-											transition: 'scale 0.1s ease-out',
-											pointerEvents: isAddingRoom ? 'none' : 'auto'
-										}}
-										className={cn(
-											"flex flex-col items-center justify-center text-white px-2 py-1 rounded-lg shadow-lg transition-colors cursor-pointer",
-											isSelected ? "bg-emerald-600" : "bg-indigo-600/90 hover:bg-indigo-500"
-										)}
-									>
-
-										<IconComponent size={14} className="mb-0.5" />
-										<span className="text-[10px] font-bold tracking-wider truncate max-w-[80px]" style={{ fontSize: `${Math.max(8, 12 / transform.scale)}px` }}>{room.name}</span>
-									</div>
+							{displayPose && (
+								<div className="absolute z-50 pointer-events-none transition-transform duration-75" style={{ ...getRobotStyle(), width: "40px", height: "40px", scale: `${1 / transform.scale}` }}>
+									<RobotIcon />
 								</div>
-							);
-						})}
+							)}
 
+							{goal && (
+								<div className="absolute z-40 pointer-events-none" style={{ left: `${goal.xPct * 100}%`, top: `${goal.yPct * 100}%`, width: "32px", height: "32px", transition: "transform 0.1s ease-out", transform: `translate(-50%, -100%) scale(${1 / transform.scale})`, transformOrigin: "bottom center" }}>
+									<PinIcon />
+								</div>
+							)}
+
+							{isAddingRoom && dragStart && dragCurrent && (
+								<div className="absolute border-2 border-indigo-500 bg-indigo-500/10 pointer-events-none z-50" style={{ left: `${(Math.min(dragStart.pixelX, dragCurrent.pixelX) / mapData.info.width) * 100}%`, top: `${(1 - Math.max(dragStart.pixelY_ROS, dragCurrent.pixelY_ROS) / mapData.info.height) * 100}%`, width: `${(Math.abs(dragCurrent.pixelX - dragStart.pixelX) / mapData.info.width) * 100}%`, height: `${(Math.abs(dragCurrent.pixelY_ROS - dragStart.pixelY_ROS) / mapData.info.height) * 100}%` }} />
+							)}
+
+							{pendingRoom && isModalOpen && (
+								<div className="absolute border-[3px] border-emerald-400 bg-emerald-500/10 shadow-[0_0_15px_rgba(52,211,153,0.3)] rounded-lg pointer-events-none z-40 animate-pulse" style={{ left: `${(pendingRoom.pixelMinX / mapData.info.width) * 100}%`, top: `${(1 - pendingRoom.pixelMaxY / mapData.info.height) * 100}%`, width: `${((pendingRoom.pixelMaxX - pendingRoom.pixelMinX) / mapData.info.width) * 100}%`, height: `${((pendingRoom.pixelMaxY - pendingRoom.pixelMinY) / mapData.info.height) * 100}%` }} />
+							)}
+
+							{rooms.map((room) => {
+								const pixelBounds = toPixelBounds(room);
+								const leftPct = (pixelBounds.minX / mapData.info.width) * 100;
+								const topPct = (1 - pixelBounds.maxY / mapData.info.height) * 100;
+								const widthPct = ((pixelBounds.maxX - pixelBounds.minX) / mapData.info.width) * 100;
+								const heightPct = ((pixelBounds.maxY - pixelBounds.minY) / mapData.info.height) * 100;
+								const IconComponent = ICON_MAP[room.iconName] || MapPin;
+								const isSelected = selectedRoomId === room.id;
+								return (
+									<div key={room.id} className={cn("absolute border-2 rounded-lg flex flex-col items-center justify-center transition-all z-30 overflow-hidden pointer-events-none", isSelected ? "border-emerald-500 bg-emerald-500/20 shadow-[0_0_20px_rgba(16,185,129,0.4)] ring-4 ring-emerald-500/20" : "border-indigo-500/50 bg-indigo-500/10 shadow-[0_0_10px_rgba(99,102,241,0.1)]")} style={{ left: `${leftPct}%`, top: `${topPct}%`, width: `${widthPct}%`, height: `${heightPct}%` }}>
+										<div
+											onMouseDown={(event) => { event.stopPropagation(); onPanStart(event); }}
+											onMouseUp={(event) => { event.stopPropagation(); if (originalOnPanEnd()) zoomToRoom(room); }}
+											onTouchStart={(event) => { event.stopPropagation(); onPanStart(event); }}
+											onTouchEnd={(event) => { event.stopPropagation(); if (originalOnPanEnd()) zoomToRoom(room); }}
+											style={{ scale: `${1 / Math.max(0.5, transform.scale)}`, transition: "scale 0.1s ease-out", pointerEvents: isAddingRoom ? "none" : "auto" }}
+											className={cn("flex flex-col items-center justify-center text-white px-2 py-1 rounded-lg shadow-lg transition-colors cursor-pointer", isSelected ? "bg-emerald-600" : "bg-indigo-600/90 hover:bg-indigo-500")}
+										>
+											<IconComponent size={14} className="mb-0.5" />
+											<span className="text-[10px] font-bold tracking-wider truncate max-w-[80px]" style={{ fontSize: `${Math.max(8, 12 / transform.scale)}px` }}>{room.name}</span>
+										</div>
+									</div>
+								);
+							})}
+						</div>
 					</div>
 				</div>
+
+				<div className="absolute inset-0 border-4 border-slate-900/10 dark:border-slate-100/10 rounded-2xl pointer-events-none z-20 transition-colors duration-300" />
+
+				{goal && (
+					<div className="absolute top-6 left-6 z-40 bg-slate-900/80 dark:bg-black/60 text-white text-sm font-semibold px-4 py-2 rounded-xl backdrop-blur-md shadow-lg pointer-events-none transition-colors duration-300">
+						Target: {goal.worldX.toFixed(2)}, {goal.worldY.toFixed(2)}
+					</div>
+				)}
+
+				{robotPose && (
+					<div className="absolute top-6 right-6 z-40 bg-blue-600/90 dark:bg-blue-500/80 text-white text-xs px-4 py-3 rounded-xl backdrop-blur-md shadow-lg font-mono pointer-events-none flex flex-col gap-1.5 transition-colors duration-300">
+						<span className="font-bold">Map Frame Pose</span>
+						<span>X: {robotPose.x.toFixed(3)} m</span>
+						<span>Y: {robotPose.y.toFixed(3)} m</span>
+					</div>
+				)}
+
+				{!selectedRoom && (
+					<div className="absolute bottom-6 right-6 z-30 flex flex-col gap-3 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md p-2 rounded-[1.25rem] shadow-xl border border-gray-200/50 dark:border-slate-700/50 transition-colors duration-300" onMouseDown={stopAllEvents} onMouseUp={stopAllEvents} onClick={stopAllEvents} onTouchStart={stopAllEvents} onTouchEnd={stopAllEvents}>
+						<button onClick={(event) => { stopAllEvents(event); setIsAddingRoom(!isAddingRoom); }} className={cn("w-12 h-12 flex items-center justify-center rounded-xl transition-colors border shadow-sm focus:outline-none mb-2", isAddingRoom ? "bg-indigo-500 text-white border-indigo-600 shadow-indigo-500/50 animate-pulse" : "bg-white dark:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-600 active:bg-gray-100 dark:active:bg-slate-500 border-gray-100 dark:border-slate-600 text-gray-700 dark:text-gray-200")}>
+							{isAddingRoom ? <Map size={24} /> : <SquarePlus size={24} />}
+						</button>
+						<div className="w-8 h-px bg-gray-200 dark:bg-slate-700 mx-auto" />
+						<button onClick={(event) => { stopAllEvents(event); zoomIn(); }} className="w-12 h-12 flex items-center justify-center bg-white dark:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-600 rounded-xl active:bg-gray-100 dark:active:bg-slate-500 transition-colors border border-gray-100 dark:border-slate-600 text-gray-700 dark:text-gray-200 shadow-sm focus:outline-none"><ZoomIn size={24} /></button>
+						<div className="w-8 h-px bg-gray-200 dark:bg-slate-700 mx-auto" />
+						<button onClick={(event) => { stopAllEvents(event); fitToScreen(); }} className="w-12 h-12 flex items-center justify-center bg-white dark:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-600 rounded-xl active:bg-gray-100 dark:active:bg-slate-500 transition-colors border border-gray-100 dark:border-slate-600 text-gray-700 dark:text-gray-200 shadow-sm focus:outline-none"><Maximize size={22} /></button>
+						<div className="w-8 h-px bg-gray-200 dark:bg-slate-700 mx-auto" />
+						<button onClick={(event) => { stopAllEvents(event); zoomOut(); }} className="w-12 h-12 flex items-center justify-center bg-white dark:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-600 rounded-xl active:bg-gray-100 dark:active:bg-slate-500 transition-colors border border-gray-100 dark:border-slate-600 text-gray-700 dark:text-gray-200 shadow-sm focus:outline-none"><ZoomOut size={24} /></button>
+					</div>
+				)}
+
+				{selectedRoom && <RoomActionsOverlay room={selectedRoom} onClose={() => setSelectedRoomId(null)} onActionTrigger={triggerRoomAction} />}
 			</div>
 
-			<div className="absolute inset-0 border-4 border-slate-900/10 dark:border-slate-100/10 rounded-2xl pointer-events-none z-20 transition-colors duration-300" />
-
-			{goal && (
-				<div className="absolute top-6 left-6 z-40 bg-slate-900/80 dark:bg-black/60 text-white text-sm font-semibold px-4 py-2 rounded-xl backdrop-blur-md shadow-lg pointer-events-none transition-colors duration-300">
-					Target: {goal.worldX.toFixed(2)}, {goal.worldY.toFixed(2)}
-				</div>
-			)}
-
-			{/* {robotPose && (
-				<div className="absolute top-6 right-6 z-40 bg-blue-600/90 dark:bg-blue-500/80 text-white text-xs px-4 py-3 rounded-xl backdrop-blur-md shadow-lg font-mono pointer-events-none flex flex-col gap-1.5 transition-colors duration-300">
-					<span className="font-bold flex items-center gap-2 mb-1">
-						<Navigation size={14} className="fill-white" />
-						Robot Telemetry
-					</span>
-					<span>X: {robotPose.x.toFixed(3)} m</span>
-					<span>Y: {robotPose.y.toFixed(3)} m</span>
-				</div>
-			)} */}
-			{!selectedRoom && (
-				<div
-					className="absolute bottom-6 right-6 z-30 flex flex-col gap-3 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md p-2 rounded-[1.25rem] shadow-xl border border-gray-200/50 dark:border-slate-700/50 transition-colors duration-300"
-					onMouseDown={stopAllEvents}
-					onMouseUp={stopAllEvents}
-					onClick={stopAllEvents}
-					onTouchStart={stopAllEvents}
-					onTouchEnd={stopAllEvents}
-
-				>
-					<button
-						onClick={(e) => {
-							stopAllEvents(e);
-							setIsAddingRoom(!isAddingRoom);
-						}}
-						className={cn(
-							"w-12 h-12 flex items-center justify-center rounded-xl transition-colors border shadow-sm focus:outline-none mb-2",
-							isAddingRoom 
-								? "bg-indigo-500 text-white border-indigo-600 shadow-indigo-500/50 animate-pulse" 
-								: "bg-white dark:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-600 active:bg-gray-100 dark:active:bg-slate-500 border-gray-100 dark:border-slate-600 text-gray-700 dark:text-gray-200"
-						)}
-					>
-						{isAddingRoom ? <Map size={24} /> : <SquarePlus size={24} />}
-					</button>
-					<div className="w-8 h-px bg-gray-200 dark:bg-slate-700 mx-auto" />
-					<button
-						onClick={(e) => {
-							stopAllEvents(e);
-							zoomIn();
-						}}
-						className="w-12 h-12 flex items-center justify-center bg-white dark:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-600 rounded-xl active:bg-gray-100 dark:active:bg-slate-500 transition-colors border border-gray-100 dark:border-slate-600 text-gray-700 dark:text-gray-200 shadow-sm focus:outline-none"
-					>
-						<ZoomIn size={24} />
-					</button>
-					<div className="w-8 h-px bg-gray-200 dark:bg-slate-700 mx-auto" />
-					<button
-						onClick={(e) => {
-							stopAllEvents(e);
-							fitToScreen();
-						}}
-						className="w-12 h-12 flex items-center justify-center bg-white dark:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-600 rounded-xl active:bg-gray-100 dark:active:bg-slate-500 transition-colors border border-gray-100 dark:border-slate-600 text-gray-700 dark:text-gray-200 shadow-sm focus:outline-none"
-					>
-						<Maximize size={22} />
-					</button>
-					<div className="w-8 h-px bg-gray-200 dark:bg-slate-700 mx-auto" />
-					<button
-						onClick={(e) => {
-							stopAllEvents(e);
-							zoomOut();
-						}}
-						className="w-12 h-12 flex items-center justify-center bg-white dark:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-600 rounded-xl active:bg-gray-100 dark:active:bg-slate-500 transition-colors border border-gray-100 dark:border-slate-600 text-gray-700 dark:text-gray-200 shadow-sm focus:outline-none"
-					>
-						<ZoomOut size={24} />
-					</button>
-				</div>
-			)}
-
-			{selectedRoom && (
-				<RoomActionsOverlay 
-					room={selectedRoom} 
-					onClose={() => setSelectedRoomId(null)} 
-				/>
-			)}
-		</div>
-
-		
-		<RoomModal
-			isOpen={isModalOpen}
-			onClose={() => {
-				setIsModalOpen(false);
-				setPendingRoom(null);
-				setIsAddingRoom(false);
-			}}
-			onSave={(name, icon) => {
-				saveRoom({
-					id: Date.now().toString(),
-					name,
-					iconName: icon,
-					...pendingRoom
-				});
-				setIsModalOpen(false);
-				setPendingRoom(null);
-				setIsAddingRoom(false);
-			}}
-		/>
+			<RoomModal
+				isOpen={isModalOpen}
+				onClose={() => {
+					setIsModalOpen(false);
+					setPendingRoom(null);
+					setIsAddingRoom(false);
+				}}
+				onSave={(name, icon) => {
+					void saveRoom({
+						id: name,
+						name,
+						iconName: icon,
+						minX: pendingRoom.minX,
+						maxX: pendingRoom.maxX,
+						minY: pendingRoom.minY,
+						maxY: pendingRoom.maxY,
+						worldX: pendingRoom.worldX,
+						worldY: pendingRoom.worldY,
+						worldTheta: pendingRoom.worldTheta,
+						devices: [],
+					});
+					setIsModalOpen(false);
+					setPendingRoom(null);
+					setIsAddingRoom(false);
+				}}
+			/>
 		</>
 	);
 };

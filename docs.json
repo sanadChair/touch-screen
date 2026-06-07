@@ -1,0 +1,1439 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "SANAD API",
+        "version": "1.0.0",
+        "description": "API documentation"
+    },
+    "servers": [
+        {
+            "url": "http://localhost:3000"
+        }
+    ],
+    "paths": {
+        "openapi": {
+            "0": "3",
+            "1": ".",
+            "2": "0",
+            "3": ".",
+            "4": "3"
+        },
+        "info": {
+            "title": "Wheelchair Velocity API",
+            "description": "API for manual teleoperation and monitoring of wheelchair velocity commands.",
+            "version": "1.0.0"
+        },
+        "/api/v1/goal": {
+            "get": {
+                "summary": "Get current navigation goal and status",
+                "description": "Retrieves the active goal coordinates, the current ROS status, and real-time feedback.",
+                "responses": {
+                    "200": {
+                        "description": "Active goal found.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/GoalResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "No active goal.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "summary": "Set a new navigation goal",
+                "description": "Sends a new target pose (x, y, yaw) to the robot.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "x",
+                                    "y",
+                                    "yaw"
+                                ],
+                                "properties": {
+                                    "x": {
+                                        "type": "number",
+                                        "example": 1.5
+                                    },
+                                    "y": {
+                                        "type": "number",
+                                        "example": -2
+                                    },
+                                    "yaw": {
+                                        "type": "number",
+                                        "description": "Rotation in radians.",
+                                        "example": 0.785
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Goal sent successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/GoalAcceptedResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input (types are not numbers).",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "ROS Action Server failure.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Cancel the active goal",
+                "description": "Issues a cancellation command to the Nav2 action server.",
+                "responses": {
+                    "200": {
+                        "description": "Cancellation signal sent.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "success"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "canceled": {
+                                                    "type": "boolean"
+                                                },
+                                                "message": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        },
+                                        "meta": {
+                                            "$ref": "#/components/schemas/Meta"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict - No active goal to cancel.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/map": {
+            "get": {
+                "summary": "Get occupancy grid map",
+                "description": "Returns the metadata and the 1D array of cell data representing the environment.",
+                "responses": {
+                    "200": {
+                        "description": "Map data retrieved successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MapResponse"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable - Map data not yet received from ROS.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/pose": {
+            "get": {
+                "summary": "Get current robot pose",
+                "description": "Returns the robot's current x, y coordinates and yaw orientation relative to a specific coordinate frame (usually \"map\").",
+                "responses": {
+                    "200": {
+                        "description": "Pose data retrieved successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PoseResponse"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable - Pose data not yet received from the ROS transform tree or topic.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/room": {
+            "get": {
+                "summary": "Get all rooms",
+                "responses": {
+                    "200": {
+                        "description": "All cached rooms returned.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SuccessRoomsMapResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "summary": "Register a new room",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RegisterRoomRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Room registered. Returns the entire rooms map.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SuccessRoomsMapResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "summary": "Update existing room info",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateRoomRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Room updated. Returns the updated single room.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SuccessSingleRoomResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/room/{id}": {
+            "get": {
+                "summary": "Get a room by id",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Single room returned.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SuccessSingleRoomResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Delete a room by id",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Room deleted.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SuccessDeleteResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/room/{id}/navigate": {
+            "post": {
+                "summary": "Navigate robot to room",
+                "description": "Sends a nav2 NavigateToPose goal using the room's stored pose.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Navigation goal sent.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SuccessNavigateResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/smart-home/discover": {
+            "get": {
+                "summary": "Scan the network",
+                "description": "Get all devices connected to the network by using UDP broadcast.",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "timeoutMs",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        },
+                        "description": "Discovery timeout in milliseconds (clamped between 1-9999, default 400)."
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Devices discovered successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SuccessDevicesMapResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/smart-home/devices": {
+            "get": {
+                "summary": "Get all devices",
+                "responses": {
+                    "200": {
+                        "description": "All cached devices returned.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SuccessDevicesMapResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "summary": "Register a new device",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RegisterDeviceRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Device registered. Returns entire devices map.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SuccessDevicesMapResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "summary": "Update existing device info",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateDeviceInfoRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Device updated. Returns the updated single device.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SuccessSingleDeviceResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/smart-home/devices/control": {
+            "post": {
+                "summary": "Control a device",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ControlRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Device state changed. Returns the updated device.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SuccessSingleDeviceResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/smart-home/devices/{id}/info": {
+            "get": {
+                "summary": "Get device info from device hardware",
+                "description": "Fetches live info directly from the physical device over HTTP.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Device info retrieved. Shape depends on the physical device response.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SuccessAnyResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/smart-home/devices/{id}/room": {
+            "patch": {
+                "summary": "Change device room",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ChangeDeviceRoomRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Device room changed. Returns TypeORM UpdateResult.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SuccessUpdateResultResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/smart-home/devices/{id}": {
+            "get": {
+                "summary": "Get a device by id",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Single device returned.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SuccessSingleDeviceResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Delete a device",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Device deleted.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SuccessDeleteResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/wheelchair/velocity": {
+            "get": {
+                "summary": "Get current velocity inputs",
+                "description": "Retrieves the last commanded linear and angular velocity inputs for the wheelchair.",
+                "responses": {
+                    "200": {
+                        "description": "Velocity data retrieved successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/VelocityResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "summary": "Update wheelchair velocity",
+                "description": "Publishes new linear and angular velocity commands to the wheelchair.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "linear",
+                                    "angular"
+                                ],
+                                "properties": {
+                                    "linear": {
+                                        "type": "number",
+                                        "minimum": -1,
+                                        "maximum": 1,
+                                        "description": "Forward/backward speed (normalized -1 to 1).",
+                                        "example": 0.5
+                                    },
+                                    "angular": {
+                                        "type": "number",
+                                        "minimum": -1,
+                                        "maximum": 1,
+                                        "description": "Turning speed (normalized -1 to 1).",
+                                        "example": -0.2
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Velocity command processed and returned in nested format.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/VelocityResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid Input - Values must be numbers between -1 and 1.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "GoalResponse": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "type": "string",
+                        "example": "success"
+                    },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "goal": {
+                                "$ref": "#/components/schemas/GoalPose"
+                            },
+                            "status": {
+                                "$ref": "#/components/schemas/RosStatus"
+                            },
+                            "feedback": {
+                                "$ref": "#/components/schemas/NavFeedback"
+                            }
+                        }
+                    },
+                    "meta": {
+                        "$ref": "#/components/schemas/Meta"
+                    }
+                }
+            },
+            "GoalAcceptedResponse": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "type": "string",
+                        "example": "success"
+                    },
+                    "data": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/GoalPose"
+                            },
+                            {
+                                "type": "object",
+                                "properties": {
+                                    "status": {
+                                        "type": "string",
+                                        "example": "PENDING"
+                                    }
+                                }
+                            }
+                        ]
+                    },
+                    "meta": {
+                        "$ref": "#/components/schemas/Meta"
+                    }
+                }
+            },
+            "ErrorResponse": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "type": "string",
+                        "example": "fail"
+                    },
+                    "error": {
+                        "type": "object",
+                        "properties": {
+                            "code": {
+                                "type": "string",
+                                "example": "INVALID_INPUT"
+                            },
+                            "message": {
+                                "type": "string",
+                                "example": "Linear and angular values must be numbers between -1 and 1."
+                            },
+                            "detail": {
+                                "type": "string"
+                            },
+                            "type": {
+                                "type": "string",
+                                "example": "ValueError"
+                            }
+                        }
+                    },
+                    "meta": {
+                        "$ref": "#/components/schemas/Meta"
+                    }
+                }
+            },
+            "GoalPose": {
+                "type": "object",
+                "properties": {
+                    "x": {
+                        "type": "number"
+                    },
+                    "y": {
+                        "type": "number"
+                    },
+                    "yaw": {
+                        "type": "number"
+                    }
+                }
+            },
+            "RosStatus": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "enum": [
+                            0,
+                            1,
+                            2,
+                            3,
+                            4,
+                            5,
+                            6
+                        ]
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "UNKNOWN",
+                            "ACCEPTED",
+                            "EXECUTING",
+                            "CANCELING",
+                            "SUCCEEDED",
+                            "CANCELED",
+                            "ABORTED"
+                        ]
+                    },
+                    "isActive": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "NavFeedback": {
+                "type": "object",
+                "properties": {
+                    "position": {
+                        "type": "object",
+                        "properties": {
+                            "x": {
+                                "type": "number"
+                            },
+                            "y": {
+                                "type": "number"
+                            },
+                            "z": {
+                                "type": "number"
+                            }
+                        }
+                    },
+                    "q": {
+                        "type": "object",
+                        "properties": {
+                            "x": {
+                                "type": "number"
+                            },
+                            "y": {
+                                "type": "number"
+                            },
+                            "z": {
+                                "type": "number"
+                            },
+                            "w": {
+                                "type": "number"
+                            }
+                        }
+                    },
+                    "navigation_time": {
+                        "$ref": "#/components/schemas/RosTime"
+                    },
+                    "estimated_time_remaining": {
+                        "$ref": "#/components/schemas/RosTime"
+                    },
+                    "number_of_recoveries": {
+                        "type": "integer"
+                    },
+                    "distance_remaining": {
+                        "type": "number"
+                    }
+                }
+            },
+            "RosTime": {
+                "type": "object",
+                "properties": {
+                    "sec": {
+                        "type": "integer"
+                    },
+                    "nanosec": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "Meta": {
+                "type": "object",
+                "properties": {
+                    "timestamp": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2026-02-06T02:35:00Z"
+                    }
+                }
+            },
+            "MapResponse": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "type": "string",
+                        "example": "success"
+                    },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "frame": {
+                                "type": "string",
+                                "example": "map"
+                            },
+                            "resolution": {
+                                "type": "number",
+                                "format": "float",
+                                "description": "The map resolution in meters/pixel.",
+                                "example": 0.05
+                            },
+                            "width": {
+                                "type": "integer",
+                                "description": "Number of cells in the x direction.",
+                                "example": 1024
+                            },
+                            "height": {
+                                "type": "integer",
+                                "description": "Number of cells in the y direction.",
+                                "example": 1024
+                            },
+                            "origin": {
+                                "type": "object",
+                                "properties": {
+                                    "x": {
+                                        "type": "number",
+                                        "example": -10
+                                    },
+                                    "y": {
+                                        "type": "number",
+                                        "example": -10
+                                    },
+                                    "yaw": {
+                                        "type": "number",
+                                        "description": "Origin orientation in radians.",
+                                        "example": 0
+                                    }
+                                }
+                            },
+                            "map": {
+                                "type": "array",
+                                "items": {
+                                    "type": "integer",
+                                    "minimum": -1,
+                                    "maximum": 100
+                                },
+                                "description": "1D array of occupancy values (0-100, -1 for unknown)."
+                            }
+                        }
+                    },
+                    "meta": {
+                        "$ref": "#/components/schemas/Meta"
+                    }
+                }
+            },
+            "PoseResponse": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "type": "string",
+                        "example": "success"
+                    },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "frame": {
+                                "type": "string",
+                                "description": "The coordinate frame ID (e.g., \"map\" or \"odom\").",
+                                "example": "map"
+                            },
+                            "x": {
+                                "type": "number",
+                                "format": "float",
+                                "example": 1.254
+                            },
+                            "y": {
+                                "type": "number",
+                                "format": "float",
+                                "example": -0.542
+                            },
+                            "yaw": {
+                                "type": "number",
+                                "description": "Orientation in radians.",
+                                "example": 1.5708
+                            },
+                            "stamp": {
+                                "$ref": "#/components/schemas/RosTime",
+                                "description": "The original ROS message timestamp."
+                            }
+                        }
+                    },
+                    "meta": {
+                        "$ref": "#/components/schemas/Meta"
+                    }
+                }
+            },
+            "Room": {
+                "type": "object",
+                "description": "Room object as stored in DB and kept in memory.",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "min_x": {
+                        "type": "number"
+                    },
+                    "min_y": {
+                        "type": "number"
+                    },
+                    "max_x": {
+                        "type": "number"
+                    },
+                    "max_y": {
+                        "type": "number"
+                    },
+                    "theta": {
+                        "type": "number",
+                        "default": 0
+                    },
+                    "pose_x": {
+                        "type": "number"
+                    },
+                    "pose_y": {
+                        "type": "number"
+                    },
+                    "pose_theta": {
+                        "type": "number",
+                        "default": 0
+                    }
+                }
+            },
+            "RoomsMap": {
+                "type": "object",
+                "description": "Object keyed by room id, each value is a Room.",
+                "additionalProperties": {
+                    "$ref": "#/components/schemas/Room"
+                }
+            },
+            "RegisterRoomRequest": {
+                "type": "object",
+                "description": "Request body uses camelCase field names per the DTO validation.",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "minX": {
+                        "type": "number"
+                    },
+                    "maxX": {
+                        "type": "number"
+                    },
+                    "minY": {
+                        "type": "number"
+                    },
+                    "maxY": {
+                        "type": "number"
+                    },
+                    "theta": {
+                        "type": "number"
+                    },
+                    "poseX": {
+                        "type": "number"
+                    },
+                    "poseY": {
+                        "type": "number"
+                    },
+                    "poseTheta": {
+                        "type": "number"
+                    },
+                    "devices": {
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        }
+                    }
+                },
+                "required": [
+                    "name",
+                    "minX",
+                    "maxX",
+                    "minY",
+                    "maxY",
+                    "theta",
+                    "poseX",
+                    "poseY",
+                    "poseTheta"
+                ]
+            },
+            "UpdateRoomRequest": {
+                "type": "object",
+                "description": "All fields optional except id. Uses camelCase per the DTO.",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "minX": {
+                        "type": "number"
+                    },
+                    "maxX": {
+                        "type": "number"
+                    },
+                    "minY": {
+                        "type": "number"
+                    },
+                    "maxY": {
+                        "type": "number"
+                    },
+                    "theta": {
+                        "type": "number"
+                    },
+                    "poseX": {
+                        "type": "number"
+                    },
+                    "poseY": {
+                        "type": "number"
+                    },
+                    "poseTheta": {
+                        "type": "number"
+                    },
+                    "devices": {
+                        "type": "array",
+                        "items": {
+                            "type": "object"
+                        }
+                    }
+                }
+            },
+            "SuccessRoomsMapResponse": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/RoomsMap"
+                    }
+                }
+            },
+            "SuccessSingleRoomResponse": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/Room"
+                    }
+                }
+            },
+            "SuccessDeleteResponse": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "deleted": {
+                                "type": "boolean",
+                                "example": true
+                            }
+                        }
+                    }
+                }
+            },
+            "SuccessNavigateResponse": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "success": {
+                                "type": "boolean",
+                                "example": true
+                            },
+                            "message": {
+                                "type": "string",
+                                "example": "Navigating to room <id>"
+                            }
+                        }
+                    }
+                }
+            },
+            "Device": {
+                "type": "object",
+                "description": "In-memory device object (merged from DB + discovery data).",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "ip": {
+                        "type": "string"
+                    },
+                    "controlType": {
+                        "type": "string"
+                    },
+                    "state": {
+                        "type": "integer"
+                    },
+                    "connected": {
+                        "type": "boolean"
+                    },
+                    "position": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "room": {
+                        "type": "object",
+                        "nullable": true,
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                }
+            },
+            "DevicesMap": {
+                "type": "object",
+                "description": "Object keyed by device id, each value is a Device.",
+                "additionalProperties": {
+                    "$ref": "#/components/schemas/Device"
+                }
+            },
+            "SuccessDevicesMapResponse": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/DevicesMap"
+                    }
+                }
+            },
+            "SuccessSingleDeviceResponse": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/Device"
+                    }
+                }
+            },
+            "SuccessAnyResponse": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "type": "object",
+                        "description": "Shape depends on the physical device response."
+                    }
+                }
+            },
+            "SuccessUpdateResultResponse": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "data": {
+                        "type": "object",
+                        "description": "TypeORM UpdateResult.",
+                        "properties": {
+                            "generatedMaps": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object"
+                                }
+                            },
+                            "raw": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object"
+                                }
+                            },
+                            "affected": {
+                                "type": "integer"
+                            }
+                        }
+                    }
+                }
+            },
+            "ControlRequest": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "state": {
+                        "type": "integer",
+                        "description": "For binary controlType, must be 0 or 1."
+                    }
+                },
+                "required": [
+                    "id",
+                    "state"
+                ]
+            },
+            "RegisterDeviceRequest": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "control_type": {
+                        "type": "string"
+                    },
+                    "state": {
+                        "type": "integer"
+                    },
+                    "roomName": {
+                        "type": "string",
+                        "description": "Optional room name to associate the device with on registration."
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "control_type",
+                    "state"
+                ]
+            },
+            "UpdateDeviceInfoRequest": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "id",
+                    "name"
+                ]
+            },
+            "ChangeDeviceRoomRequest": {
+                "type": "object",
+                "properties": {
+                    "roomId": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "roomId"
+                ]
+            },
+            "VelocityResponse": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "type": "string",
+                        "example": "success"
+                    },
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "integer",
+                                    "example": 1
+                                },
+                                "name": {
+                                    "type": "string",
+                                    "example": "wheelchair"
+                                },
+                                "velocity": {
+                                    "type": "object",
+                                    "properties": {
+                                        "linear": {
+                                            "type": "number",
+                                            "example": 0.5
+                                        },
+                                        "angular": {
+                                            "type": "number",
+                                            "example": -0.2
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "meta": {
+                        "$ref": "#/components/schemas/Meta"
+                    }
+                }
+            }
+        }
+    },
+    "tags": []
+}

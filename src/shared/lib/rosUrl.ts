@@ -1,4 +1,4 @@
-const DEFAULT_ROS_URL = "ws://172.18.224.22:9090";
+const DEFAULT_ROS_URL = "ws://localhost:9090";
 
 const trimTrailingSlash = (value: string) => value.replace(/\/+$/, "");
 
