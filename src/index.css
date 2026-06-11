@@ -45,3 +45,13 @@ input:focus-visible,
 	box-shadow: 0 0 0 4px var(--color-indigo-400, #818cf8);
 }
 
+/* Kiosk height optimization (<= 520px) */
+@media (max-height: 520px) {
+	.kiosk-view {
+		padding: 0.75rem !important;
+	}
+	.kiosk-gap {
+		gap: 0.75rem !important;
+	}
+}
+

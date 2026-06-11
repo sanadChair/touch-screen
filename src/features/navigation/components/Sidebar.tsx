@@ -13,17 +13,21 @@ export function Sidebar({ tabs, activeTabId, onTabChange }: SidebarProps) {
 
 	return (
 		<aside 
-			className="w-28 h-full bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-800 flex flex-col items-center py-8 shadow-sm z-10 transition-colors duration-300"
+			className="w-14 sm:w-28 h-full bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-800 flex flex-col items-center py-4 sm:py-8 shadow-sm z-10 transition-colors duration-300"
 			aria-label="Main Navigation"
 		>
-			<div className="mb-10" aria-hidden="true">
-				<div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-					<span className="text-white font-bold text-2xl tracking-tighter">S</span>
+			<button 
+				onClick={() => onTabChange("home")}
+				className="mb-6 sm:mb-10 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-xl shrink-0" 
+				aria-label="Go to Home"
+			>
+				<div className="w-10 h-10 sm:w-14 sm:h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+					<span className="text-white font-bold text-lg sm:text-2xl tracking-tighter">S</span>
 				</div>
-			</div>
+			</button>
 
 			<nav 
-				className="flex-1 w-full flex flex-col items-center gap-6"
+				className="flex-1 w-full flex flex-col items-center gap-4 sm:gap-6"
 				role="tablist"
 				aria-label="Application Tabs"
 				onKeyDown={handleKeyDown}
@@ -41,7 +45,7 @@ export function Sidebar({ tabs, activeTabId, onTabChange }: SidebarProps) {
 							aria-label={`Switch to ${tab.label} view`}
 							tabIndex={isActive ? 0 : -1}
 							className={clsx(
-								"w-20 h-20 rounded-[1.25rem] flex flex-col items-center justify-center transition-all duration-300 ease-out gap-1.5 focus:outline-none",
+								"w-11 h-11 sm:w-20 sm:h-20 rounded-xl sm:rounded-[1.25rem] flex flex-col items-center justify-center transition-all duration-300 ease-out gap-1.5 focus:outline-none shrink-0",
 								isActive
 									? "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] dark:shadow-none"
 									: "text-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-gray-200",
@@ -50,7 +54,7 @@ export function Sidebar({ tabs, activeTabId, onTabChange }: SidebarProps) {
 							<div
 								className={clsx(
 									"transition-transform duration-300",
-									isActive ? "scale-110 translate-y-[-2px]" : "",
+									isActive ? "scale-105 sm:scale-110 sm:translate-y-[-2px]" : "",
 								)}
 								aria-hidden="true"
 							>
@@ -58,7 +62,7 @@ export function Sidebar({ tabs, activeTabId, onTabChange }: SidebarProps) {
 							</div>
 							<span
 								className={clsx(
-									"text-[11px] font-semibold tracking-wide transition-opacity duration-300",
+									"text-[11px] font-semibold tracking-wide transition-opacity duration-300 hidden sm:block",
 									isActive ? "opacity-100" : "opacity-80",
 								)}
 							>

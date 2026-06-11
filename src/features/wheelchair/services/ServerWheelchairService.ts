@@ -1,8 +1,9 @@
 import type { IWheelchairService } from "./IWheelchairService";
+import { getServerUrl } from "../../../shared/lib/config";
 
 export class ServerWheelchairService implements IWheelchairService {
 	private static instance: ServerWheelchairService | null = null;
-	private serverUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:5051/api/v1";
+	private serverUrl = getServerUrl();
 
 	private constructor() {}
 
@@ -29,12 +30,14 @@ export class ServerWheelchairService implements IWheelchairService {
 	public async getVelocity(): Promise<{ linear: number; angular: number }> {
 		const response = await fetch(`${this.serverUrl}/wheelchair/velocity`);
 		const result = await response.json();
-		if (!response.ok || !result.success) {
+		const isSuccess = result.status === "success" || result.success === true;
+		if (!response.ok || !isSuccess) {
 			throw new Error(result.error?.message || "Failed to get velocity");
 		}
+		const velData = Array.isArray(result.data) ? result.data[0]?.velocity : result.data?.velocity;
 		return {
-			linear: result.data.linear ?? 0,
-			angular: result.data.angular ?? 0,
+			linear: velData?.linear ?? 0,
+			angular: velData?.angular ?? 0,
 		};
 	}
 }

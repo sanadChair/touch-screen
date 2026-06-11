@@ -293,7 +293,7 @@ export const MapCanvas = ({ mapData, robotPose, onGoalClick, className, external
 		<>
 			<div
 				ref={containerRef}
-				className={cn("relative w-full h-[600px] bg-slate-200 dark:bg-slate-900 shadow-2xl rounded-xl touch-none isolate overflow-hidden select-none", className)}
+				className={cn("relative w-full h-full min-h-[300px] bg-slate-200 dark:bg-slate-900 shadow-2xl rounded-xl touch-none isolate overflow-hidden select-none", className)}
 				style={{ cursor: isAddingRoom ? "crosshair" : CUSTOM_CURSOR }}
 				onMouseDown={handleDragStart}
 				onMouseMove={handleDragMove}

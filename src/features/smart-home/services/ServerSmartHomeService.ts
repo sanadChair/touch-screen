@@ -1,9 +1,10 @@
 import type { RoomAction } from "../../map/types";
 import type { ISmartHomeService } from "./ISmartHomeService";
+import { getServerUrl } from "../../../shared/lib/config";
 
 export class ServerSmartHomeService implements ISmartHomeService {
 	private static instance: ServerSmartHomeService | null = null;
-	private serverUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:5051/api/v1";
+	private serverUrl = getServerUrl();
 
 	private constructor() {}
 

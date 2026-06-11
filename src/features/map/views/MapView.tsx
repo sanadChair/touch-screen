@@ -18,6 +18,7 @@ export function MapView() {
 		lastFeedback,
 		pathHistory,
 		setExternalNavigationGoal,
+		cancelGoal,
 	} = useMapData();
 	const { handleGoalClick } = useGoal();
 	const { destinations, navigateTo, activeDestinationId } = useQuickNav();
@@ -34,7 +35,7 @@ export function MapView() {
 	}, [activePoint, setExternalNavigationGoal]);
 
 	return (
-		<div className="flex-1 h-full flex flex-col items-center justify-center p-8 md:p-12 bg-gray-50 dark:bg-slate-900 transition-colors duration-300">
+		<div className="flex-1 h-full flex flex-col items-center justify-center p-6 sm:p-12 bg-gray-50 dark:bg-slate-900 transition-colors duration-300 kiosk-view">
 			<div className="w-full max-w-5xl h-full flex flex-col gap-6">
 				<div className="flex items-center justify-between px-2">
 					<h2 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Navigation Map</h2>
@@ -67,12 +68,22 @@ export function MapView() {
 
 						{!isFullscreen && (
 						<div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-							<div className="md:col-span-2 rounded-2xl border border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50 p-4">
-								<p className="text-xs uppercase tracking-[0.2em] text-gray-500 dark:text-slate-400">Navigation Status</p>
-								<p className="mt-2 text-xl font-bold text-gray-900 dark:text-white">{navigationStatus.replaceAll("_", " ")}</p>
-								<p className="mt-2 text-sm text-gray-500 dark:text-slate-400">
-									Goal: {activeGoal ? `${activeGoal.x.toFixed(2)}, ${activeGoal.y.toFixed(2)}` : "No active goal"}
-								</p>
+							<div className="md:col-span-2 rounded-2xl border border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50 p-4 flex flex-col justify-between min-h-[110px]">
+								<div>
+									<p className="text-xs uppercase tracking-[0.2em] text-gray-500 dark:text-slate-400">Navigation Status</p>
+									<p className="mt-2 text-xl font-bold text-gray-900 dark:text-white">{navigationStatus.replaceAll("_", " ")}</p>
+									<p className="mt-2 text-sm text-gray-500 dark:text-slate-400">
+										Goal: {activeGoal ? `${activeGoal.x.toFixed(2)}, ${activeGoal.y.toFixed(2)}` : "No active goal"}
+									</p>
+								</div>
+								{navigationStatus !== "idle" && navigationStatus !== "succeeded" && navigationStatus !== "failed" && navigationStatus !== "canceled" && (
+									<button
+										onClick={cancelGoal}
+										className="mt-3 w-full py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-xl font-bold text-sm shadow-sm transition-colors cursor-pointer text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 select-none"
+									>
+										Cancel Navigation
+									</button>
+								)}
 							</div>
 							<div className="rounded-2xl border border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50 p-4">
 								<p className="text-xs uppercase tracking-[0.2em] text-gray-500 dark:text-slate-400">Remaining</p>

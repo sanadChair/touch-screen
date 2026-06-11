@@ -259,11 +259,11 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Room registered. Returns the entire rooms map.",
+                        "description": "Room registered. Returns the saved room.",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/SuccessRoomsMapResponse"
+                                    "$ref": "#/components/schemas/Room"
                                 }
                             }
                         }
@@ -397,7 +397,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/SuccessDevicesMapResponse"
+                                    "$ref": "#/components/schemas/Device"
                                 }
                             }
                         }
@@ -435,7 +435,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Device registered. Returns entire devices map.",
+                        "description": "Device registered. Returns the registered device.",
                         "content": {
                             "application/json": {
                                 "schema": {

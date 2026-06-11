@@ -1,8 +1,9 @@
 import type { IMapService } from "./IMapService";
 import type { GoalPoint, NavigationState, OccupancyGrid, RobotPose, NavigationStatus } from "../types";
+import { getServerUrl } from "../../../shared/lib/config";
 
 export class ServerMapService implements IMapService {
-	private serverUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:5051/api/v1";
+	private serverUrl = getServerUrl();
 	private mapInterval: number | undefined;
 	private poseInterval: number | undefined;
 	private navigationState: NavigationState = {
@@ -109,6 +110,24 @@ export class ServerMapService implements IMapService {
 		} else {
 			this.stopGoalPolling();
 		}
+	}
+
+	cancelGoal(): void {
+		fetch(`${this.serverUrl}/goal`, {
+			method: "DELETE",
+		})
+			.then(() => {
+				this.navigationState = {
+					...this.navigationState,
+					status: "canceled",
+					activeGoal: null,
+				};
+				this.emitNavigation();
+				this.stopGoalPolling();
+			})
+			.catch((error) => {
+				console.error("Error canceling goal:", error);
+			});
 	}
 
 	dispose(): void {

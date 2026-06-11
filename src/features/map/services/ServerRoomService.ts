@@ -1,5 +1,6 @@
 import type { IRoomService } from "./IRoomService";
 import type { DefinedRoom, RoomDevice, DeviceStateMap } from "../types";
+import { getServerUrl } from "../../../shared/lib/config";
 
 type RoomListener = (rooms: DefinedRoom[]) => void;
 
@@ -16,7 +17,7 @@ const getRoomIcon = (roomName: string): string =>
 
 export class ServerRoomService implements IRoomService {
 	private static instance: ServerRoomService | null = null;
-	private serverUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:5051/api/v1";
+	private serverUrl = getServerUrl();
 	private listeners = new Set<RoomListener>();
 	private roomsCache: DefinedRoom[] = [];
 	private refreshPromise: Promise<DefinedRoom[]> | null = null;
@@ -153,11 +154,12 @@ export class ServerRoomService implements IRoomService {
 			body: JSON.stringify(body),
 		});
 
+		const result = await response.json().catch(() => ({}));
 		if (!response.ok) {
-			const errResult = await response.json().catch(() => ({}));
-			throw new Error(errResult.error?.message || `Failed to add room: ${response.statusText}`);
+			throw new Error(result.error?.message || `Failed to add room: ${response.statusText}`);
 		}
 
+		console.log("Successfully added room:", result);
 		await this.refreshRooms(true);
 	}
 

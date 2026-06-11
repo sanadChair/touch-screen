@@ -37,6 +37,10 @@ export const useMapData = () => {
 		mapService.setExternalNavigationGoal?.(goal);
 	}, []);
 
+	const cancelGoal = useCallback(() => {
+		mapService.cancelGoal();
+	}, []);
+
 	useEffect(() => {
 		let isMounted = true;
 
@@ -91,5 +95,5 @@ export const useMapData = () => {
 		};
 	}, []);
 
-	return { ...state, isMapStable, setGoal, setExternalNavigationGoal };
+	return { ...state, isMapStable, setGoal, setExternalNavigationGoal, cancelGoal };
 };

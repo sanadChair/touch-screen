@@ -10,6 +10,7 @@ export interface IMapService {
 	onRobotPoseUpdate(callback: (pose: RobotPose) => void): void;
 	onNavigationStateUpdate(callback: (state: NavigationState) => void): void;
 	setGoal(x: number, y: number, label?: string): void;
+	cancelGoal(): void;
 	setExternalNavigationGoal?(goal: GoalPoint | null): void;
 	dispose(): void;
 }

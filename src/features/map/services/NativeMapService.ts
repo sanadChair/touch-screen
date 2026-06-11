@@ -29,6 +29,7 @@ export class NativeMapService implements IMapService {
 		pathHistory: [],
 	};
 	private latestPose: RobotPose | null = null;
+	private activeGoalId: string | null = null;
 
 	constructor() {
 		const rosService = RosService.getInstance();
@@ -119,7 +120,7 @@ export class NativeMapService implements IMapService {
 		};
 		this.emitNavigation();
 
-		this.navigationActionClient.sendGoal(
+		this.activeGoalId = this.navigationActionClient.sendGoal(
 			{
 				pose: {
 					header: { frame_id: "map", stamp },
@@ -163,6 +164,23 @@ export class NativeMapService implements IMapService {
 			status: goal ? "goal_sent" : "idle",
 			activeGoal: goal,
 			pathHistory: this.latestPose ? [this.toPathPoint(this.latestPose)] : [],
+		};
+		this.emitNavigation();
+	}
+
+	cancelGoal(): void {
+		if (this.activeGoalId && this.navigationActionClient.cancelGoal) {
+			try {
+				this.navigationActionClient.cancelGoal(this.activeGoalId);
+			} catch (error) {
+				console.error("NativeMapService: error canceling goal", error);
+			}
+			this.activeGoalId = null;
+		}
+		this.navigationState = {
+			...this.navigationState,
+			status: "canceled",
+			activeGoal: null,
 		};
 		this.emitNavigation();
 	}

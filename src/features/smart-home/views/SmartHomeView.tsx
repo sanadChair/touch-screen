@@ -6,6 +6,7 @@ import {
 	Settings2,
 	ShieldCheck,
 	Thermometer,
+	Wifi,
 } from "lucide-preact";
 import { useState } from "preact/hooks";
 import { useRooms } from "../../map/hooks/useRooms";
@@ -13,6 +14,7 @@ import type { RoomAction } from "../../map/types";
 import { getAllDevices, getRoomActions } from "../../map/lib/roomDevices";
 import { SmartHomeServiceFactory } from "../services/SmartHomeServiceFactory";
 import { useArrowNavigation } from "../../../shared/hooks/useArrowNavigation";
+import { getServerHealth } from "../../../shared/hooks/useServerHealth";
 
 const SECTION_META: Record<string, { icon: any; title: string }> = {
 	lighting: { icon: Lightbulb, title: "Lighting" },
@@ -37,6 +39,7 @@ export function SmartHomeView() {
 	const smartHomeService = SmartHomeServiceFactory.getService();
 	const [pendingActionIds, setPendingActionIds] = useState<Record<string, boolean>>({});
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
+	const [isScanning, setIsScanning] = useState(false);
 
 	const actions = rooms.flatMap((room) => getRoomActions(room));
 	const devices = getAllDevices(rooms);
@@ -60,14 +63,52 @@ export function SmartHomeView() {
 		}
 	};
 
+	const handleDiscover = async () => {
+		setIsScanning(true);
+		setErrorMessage(null);
+		try {
+			const serverUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:5051/api/v1";
+			const connType = import.meta.env.VITE_CONNECTION_TYPE || "NATIVE";
+			
+			if (connType === "MOCK" || getServerHealth() === "offline") {
+				// Simulate offline discovery
+				await new Promise((resolve) => setTimeout(resolve, 1500));
+				console.log("Mock discovery scan complete.");
+			} else {
+				const response = await fetch(`${serverUrl}/smart-home/discover?timeoutMs=2000`);
+				const result = await response.json();
+				if (!response.ok) {
+					throw new Error(result.error?.message || "Failed to scan network");
+				}
+				console.log("Discovery scan results:", result);
+			}
+			await refreshRooms();
+		} catch (error: any) {
+			console.error("Discovery scan failed:", error);
+			setErrorMessage(error.message || "Failed to discover new devices.");
+		} finally {
+			setIsScanning(false);
+		}
+	};
+
 	return (
-		<div className="flex-1 h-full flex flex-col p-8 md:p-12 bg-gray-50 dark:bg-slate-900 overflow-y-auto transition-colors duration-300">
-			<div className="max-w-6xl mx-auto w-full flex flex-col gap-8 md:gap-10">
-				<header className="flex flex-col gap-3">
-					<h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white tracking-tight">Smart Home</h1>
-					<p className="text-sm text-gray-500 dark:text-slate-400">
-						{devices.length} devices across {rooms.length} rooms
-					</p>
+		<div className="flex-1 h-full flex flex-col p-6 sm:p-12 bg-gray-50 dark:bg-slate-900 overflow-y-auto transition-colors duration-300 kiosk-view">
+			<div className="max-w-6xl mx-auto w-full flex flex-col gap-6 sm:gap-10 kiosk-gap">
+				<header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+					<div className="flex flex-col gap-1">
+						<h1 className="text-3xl sm:text-5xl font-extrabold text-gray-900 dark:text-white tracking-tight">Smart Home</h1>
+						<p className="text-sm text-gray-500 dark:text-slate-400">
+							{devices.length} devices across {rooms.length} rooms
+						</p>
+					</div>
+					<button
+						onClick={handleDiscover}
+						disabled={isScanning}
+						className="flex items-center justify-center gap-2 px-5 py-3.5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white rounded-2xl font-bold shadow-md transition-colors cursor-pointer disabled:opacity-50 select-none text-center self-start sm:self-auto min-h-[48px]"
+					>
+						<Wifi size={20} className={isScanning ? "animate-pulse" : ""} />
+						{isScanning ? "Scanning..." : "Scan Network"}
+					</button>
 				</header>
 
 				{errorMessage && (
