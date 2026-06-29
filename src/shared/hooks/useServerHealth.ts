@@ -15,6 +15,13 @@ export const setServerHealth = (status: HealthStatus) => {
 
 export const getServerHealth = () => globalStatus;
 
+export const subscribeServerHealth = (listener: (status: HealthStatus) => void) => {
+	listeners.add(listener);
+	return () => {
+		listeners.delete(listener);
+	};
+};
+
 export const useServerHealth = () => {
 	const [status, setStatus] = useState<HealthStatus>(globalStatus);
 

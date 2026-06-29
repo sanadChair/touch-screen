@@ -92,75 +92,75 @@ export function SmartHomeView() {
 	};
 
 	return (
-		<div className="flex-1 h-full flex flex-col p-6 sm:p-12 bg-gray-50 dark:bg-slate-900 overflow-y-auto transition-colors duration-300 kiosk-view">
-			<div className="max-w-6xl mx-auto w-full flex flex-col gap-6 sm:gap-10 kiosk-gap">
-				<header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-					<div className="flex flex-col gap-1">
-						<h1 className="text-3xl sm:text-5xl font-extrabold text-gray-900 dark:text-white tracking-tight">Smart Home</h1>
-						<p className="text-sm text-gray-500 dark:text-slate-400">
+		<div className="flex-1 h-full flex flex-col p-4 bg-gray-50 dark:bg-slate-900 overflow-y-auto transition-colors duration-300 kiosk-view select-none">
+			<div className="max-w-4xl mx-auto w-full flex flex-col gap-4">
+				<header className="flex items-center justify-between border-b border-gray-200 dark:border-slate-800 pb-2">
+					<div className="flex flex-col gap-0.5">
+						<h1 className="text-xl font-black text-gray-900 dark:text-white tracking-tight">Smart Home</h1>
+						<p className="text-[10px] text-gray-500 dark:text-slate-400 font-semibold">
 							{devices.length} devices across {rooms.length} rooms
 						</p>
 					</div>
 					<button
 						onClick={handleDiscover}
 						disabled={isScanning}
-						className="flex items-center justify-center gap-2 px-5 py-3.5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white rounded-2xl font-bold shadow-md transition-colors cursor-pointer disabled:opacity-50 select-none text-center self-start sm:self-auto min-h-[48px]"
+						className="flex items-center justify-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white rounded-xl font-bold shadow-sm transition-colors cursor-pointer disabled:opacity-50 select-none text-[11px] min-h-[36px]"
 					>
-						<Wifi size={20} className={isScanning ? "animate-pulse" : ""} />
+						<Wifi size={14} className={isScanning ? "animate-pulse" : ""} />
 						{isScanning ? "Scanning..." : "Scan Network"}
 					</button>
 				</header>
 
 				{errorMessage && (
-					<div className="p-4 rounded-2xl border border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
+					<div className="p-3 text-xs rounded-xl border border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
 						{errorMessage}
 					</div>
 				)}
 
-				<div className="grid grid-cols-1 xl:grid-cols-2 gap-6" onKeyDown={handleKeyDown}>
+				<div className="grid grid-cols-2 gap-3" onKeyDown={handleKeyDown}>
 					{Object.entries(SECTION_META).map(([key, meta]) => {
 						const sectionActions = groupedActions[key] ?? [];
 						const Icon = meta.icon;
 
 						return (
-							<section key={key} className="flex flex-col gap-4">
-								<div className="flex items-center gap-3 px-2">
-									<Icon className="text-slate-500 dark:text-slate-300" size={22} aria-hidden="true" />
-									<h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">{meta.title}</h2>
+							<section key={key} className="flex flex-col gap-1.5">
+								<div className="flex items-center gap-2 px-1">
+									<Icon className="text-slate-500 dark:text-slate-400" size={16} aria-hidden="true" />
+									<h2 className="text-sm font-extrabold text-gray-800 dark:text-gray-100 uppercase tracking-wider">{meta.title}</h2>
 								</div>
 
-								<div className="bg-white dark:bg-slate-800 p-5 rounded-[2rem] border border-gray-100 dark:border-slate-700 shadow-sm min-h-48">
+								<div className="bg-white dark:bg-slate-800 p-3 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm min-h-[80px]">
 									{sectionActions.length === 0 ? (
-										<div className="h-full flex items-center justify-center text-sm text-gray-500 dark:text-slate-400">
-											{isLoading ? "Loading live devices..." : "No live controls in this category."}
+										<div className="h-full py-4 flex items-center justify-center text-xs text-gray-400 dark:text-slate-500">
+											{isLoading ? "Loading live devices..." : "No controls."}
 										</div>
 									) : (
-										<div className="flex flex-col gap-4">
+										<div className="flex flex-col gap-2">
 											{sectionActions.map((action) => {
 												const isPending = pendingActionIds[action.id];
 												return (
-													<div key={action.id} className="rounded-2xl border border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50 p-4 flex items-center justify-between gap-4">
+													<div key={action.id} className="rounded-xl border border-gray-100 dark:border-slate-800 bg-gray-50 dark:bg-slate-900/40 p-2.5 flex items-center justify-between gap-3">
 														<div className="min-w-0">
-															<p className="text-base font-bold text-gray-900 dark:text-white truncate">{action.deviceName}</p>
-															<p className="text-sm text-gray-500 dark:text-slate-400 truncate">
-																{action.label} in {action.roomId.replaceAll("_", " ")}
+															<p className="text-xs font-bold text-gray-900 dark:text-white truncate">{action.deviceName}</p>
+															<p className="text-[9px] text-gray-400 dark:text-slate-500 truncate">
+																{action.label} ({action.roomId.replaceAll("_", " ")})
 															</p>
 														</div>
-														<div className="flex items-center gap-3 shrink-0">
+														<div className="flex items-center gap-2 shrink-0">
 															{action.type === "toggle" && (
 																<button
 																	onClick={() => triggerAction(action, !(action.value as boolean))}
 																	disabled={isPending}
 																	className={clsx(
-																		"w-16 h-10 rounded-full flex items-center p-1 transition-colors",
-																		action.value ? "bg-emerald-500 justify-end" : "bg-gray-300 dark:bg-slate-600 justify-start",
+																		"w-11 h-6 rounded-full flex items-center p-0.5 transition-colors cursor-pointer",
+																		action.value ? "bg-emerald-500 justify-end" : "bg-gray-300 dark:bg-slate-700 justify-start",
 																	)}
 																>
-																	<div className="w-8 h-8 rounded-full bg-white shadow-md" />
+																	<div className="w-5 h-5 rounded-full bg-white shadow-md" />
 																</button>
 															)}
 															{action.type === "slider" && (
-																<div className="flex items-center gap-3">
+																<div className="flex items-center gap-2">
 																	<input
 																		type="range"
 																		min="0"
@@ -168,9 +168,9 @@ export function SmartHomeView() {
 																		value={Number(action.value ?? 0)}
 																		disabled={isPending}
 																		onChange={(e) => triggerAction(action, Number(e.currentTarget.value))}
-																		className="w-32 accent-blue-500"
+																		className="w-20 accent-blue-500 cursor-pointer h-1 bg-gray-250 dark:bg-slate-700 rounded-lg appearance-none"
 																	/>
-																	<span className="w-10 text-right text-sm font-mono text-gray-600 dark:text-slate-300">
+																	<span className="text-[10px] font-mono font-bold text-gray-600 dark:text-slate-300">
 																		{Number(action.value ?? 0)}
 																	</span>
 																</div>
@@ -179,12 +179,12 @@ export function SmartHomeView() {
 																<button
 																	onClick={() => triggerAction(action, true)}
 																	disabled={isPending}
-																	className="px-4 py-2 rounded-xl bg-slate-900 text-white dark:bg-white dark:text-slate-900"
+																	className="px-2.5 py-1 text-[10px] font-extrabold rounded-lg bg-slate-900 text-white dark:bg-white dark:text-slate-900 cursor-pointer"
 																>
 																	Run
 																</button>
 															)}
-															{isPending && <Monitor size={16} className="animate-pulse text-blue-500" />}
+															{isPending && <Monitor size={12} className="animate-pulse text-blue-500" />}
 														</div>
 													</div>
 												);

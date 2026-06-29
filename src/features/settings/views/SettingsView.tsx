@@ -66,97 +66,75 @@ export function SettingsView() {
 	};
 
 	return (
-		<div className="flex-1 h-full flex flex-col p-6 sm:p-12 bg-gray-50 dark:bg-slate-900 overflow-y-auto transition-colors duration-300 kiosk-view">
-			<div className="max-w-3xl mx-auto w-full flex flex-col gap-6 sm:gap-8 kiosk-gap">
-				<header>
-					<h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-2">
+		<div className="flex-1 h-full flex flex-col p-4 bg-gray-50 dark:bg-slate-900 overflow-y-auto transition-colors duration-300 kiosk-view select-none">
+			<div className="max-w-xl mx-auto w-full flex flex-col gap-4">
+				<header className="border-b border-gray-200 dark:border-slate-800 pb-2">
+					<h1 className="text-xl font-black text-gray-900 dark:text-white tracking-tight">
 						Settings
 					</h1>
-					<p className="text-sm sm:text-base text-gray-500 dark:text-slate-400">
+					<p className="text-[10px] text-gray-500 dark:text-slate-400 font-semibold">
 						Manage kiosk preferences and system configuration.
 					</p>
 				</header>
 
-				<div className="space-y-6">
+				<div className="space-y-4">
 					{/* Appearance Section */}
-					<section aria-labelledby="appearance-heading">
-						<h2 id="appearance-heading" className="text-sm font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-3 px-4">
+					<section aria-labelledby="appearance-heading" className="flex flex-col gap-1.5">
+						<h2 id="appearance-heading" className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest pl-2">
 							Appearance
 						</h2>
-						<div className="bg-white dark:bg-slate-800 rounded-[2rem] shadow-sm border border-gray-100 dark:border-slate-700 overflow-hidden transition-colors duration-300">
-							<div className="p-6 flex flex-col sm:flex-row sm:items-center gap-6 justify-between">
-								<div className="flex items-center gap-4">
-									<div className="w-12 h-12 sm:w-14 sm:h-14 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-2xl flex items-center justify-center shrink-0" aria-hidden="true">
-										<Smartphone size={24} />
+						<div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden transition-colors duration-300">
+							<div className="p-4 flex items-center justify-between gap-4">
+								<div className="flex items-center gap-3">
+									<div className="w-10 h-10 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center shrink-0" aria-hidden="true">
+										<Smartphone size={20} />
 									</div>
 									<div>
-										<h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-gray-100">
+										<h3 className="text-sm font-bold text-gray-800 dark:text-gray-100 leading-tight">
 											Theme Mode
 										</h3>
-										<p className="text-sm sm:text-base text-gray-500 dark:text-slate-400">
-											Select your preferred interface style
+										<p className="text-[10px] text-gray-500 dark:text-slate-400 mt-0.5">
+											Select interface style
 										</p>
 									</div>
 								</div>
 								<div 
-									className="flex items-center bg-gray-100 dark:bg-slate-900 rounded-xl p-1 gap-1 border border-gray-200 dark:border-slate-700 self-start sm:self-auto"
+									className="flex items-center bg-gray-100 dark:bg-slate-900 rounded-lg p-0.5 gap-0.5 border border-gray-200 dark:border-slate-700"
 									role="radiogroup"
 									aria-label="Select Theme"
 									onKeyDown={handleKeyDown}
 								>
-									<button
-										onClick={() => setTheme("light")}
-										role="radio"
-										aria-checked={theme === "light"}
-										aria-label="Light Theme"
-										tabIndex={theme === "light" ? 0 : -1}
-										className={`p-2.5 rounded-lg flex items-center justify-center transition-all focus:outline-none cursor-pointer ${
-											theme === "light"
-												? "bg-white dark:bg-slate-800 shadow-sm text-blue-600 dark:text-blue-400 font-bold"
-												: "text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-gray-200"
-										}`}
-									>
-										<Sun size={20} aria-hidden="true" />
-									</button>
-									<button
-										onClick={() => setTheme("system")}
-										role="radio"
-										aria-checked={theme === "system"}
-										aria-label="System Theme"
-										tabIndex={theme === "system" ? 0 : -1}
-										className={`p-2.5 rounded-lg flex items-center justify-center transition-all focus:outline-none cursor-pointer ${
-											theme === "system"
-												? "bg-white dark:bg-slate-800 shadow-sm text-blue-600 dark:text-blue-400 font-bold"
-												: "text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-gray-200"
-										}`}
-									>
-										<Monitor size={20} aria-hidden="true" />
-									</button>
-									<button
-										onClick={() => setTheme("dark")}
-										role="radio"
-										aria-checked={theme === "dark"}
-										aria-label="Dark Theme"
-										tabIndex={theme === "dark" ? 0 : -1}
-										className={`p-2.5 rounded-lg flex items-center justify-center transition-all focus:outline-none cursor-pointer ${
-											theme === "dark"
-												? "bg-white dark:bg-slate-800 shadow-sm text-blue-600 dark:text-blue-400 font-bold"
-												: "text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-gray-200"
-										}`}
-									>
-										<Moon size={20} aria-hidden="true" />
-									</button>
+									{[(["light", Sun] as const), (["system", Monitor] as const), (["dark", Moon] as const)].map(([t, Icon]) => {
+										const isSelected = theme === t;
+										return (
+											<button
+												key={t}
+												onClick={() => setTheme(t)}
+												role="radio"
+												aria-checked={isSelected}
+												aria-label={`${t} theme`}
+												tabIndex={isSelected ? 0 : -1}
+												className={`p-2 rounded-md flex items-center justify-center transition-all focus:outline-none cursor-pointer ${
+													isSelected
+														? "bg-white dark:bg-slate-800 shadow-sm text-blue-600 dark:text-blue-400 font-bold"
+														: "text-gray-400 dark:text-slate-500 hover:text-gray-800 dark:hover:text-gray-200"
+												}`}
+											>
+												<Icon size={16} aria-hidden="true" />
+											</button>
+										);
+									})}
 								</div>
 							</div>
 						</div>
 					</section>
 
 					{/* System Section */}
-					<section aria-labelledby="system-heading">
-						<h2 id="system-heading" className="text-sm font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-3 px-4">
+					<section aria-labelledby="system-heading" className="flex flex-col gap-1.5">
+						<h2 id="system-heading" className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest pl-2">
 							System
 						</h2>
-						<div className="bg-white dark:bg-slate-800 rounded-[2rem] shadow-sm border border-gray-100 dark:border-slate-700 overflow-hidden transition-colors duration-300">
+						<div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden transition-colors duration-300">
 							<div className="flex flex-col" role="list" onKeyDown={handleKeyDown}>
 								<button 
 									onClick={() => {
@@ -164,44 +142,44 @@ export function SettingsView() {
 										setTempType(connTypeVal);
 										setActiveModal("connection");
 									}}
-									className="p-6 border-b border-gray-100 dark:border-slate-700 flex items-center gap-4 sm:gap-6 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer active:bg-gray-100 dark:active:bg-slate-700 text-left focus:outline-none focus-visible:bg-gray-50 dark:focus-visible:bg-slate-700/50 min-h-[48px]"
+									className="p-4 border-b border-gray-100 dark:border-slate-800 flex items-center gap-4 hover:bg-gray-50 dark:hover:bg-slate-800/40 transition-colors cursor-pointer text-left focus:outline-none min-h-[48px]"
 									role="listitem"
 									aria-label="Connection Settings"
 								>
-									<div className="w-12 h-12 sm:w-14 sm:h-14 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-2xl flex items-center justify-center shadow-sm shrink-0" aria-hidden="true">
-										<Wifi size={24} />
+									<div className="w-10 h-10 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center shadow-sm shrink-0" aria-hidden="true">
+										<Wifi size={20} />
 									</div>
 									<div className="flex-1">
-										<h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-gray-100">
+										<h3 className="text-sm font-bold text-gray-800 dark:text-gray-100 leading-tight">
 											Connection
 										</h3>
-										<p className="text-sm sm:text-base text-gray-500 dark:text-slate-400">
-											ROS 2 Bridge and network settings
+										<p className="text-[10px] text-gray-500 dark:text-slate-400 mt-0.5">
+											ROS 2 Bridge and network URL settings
 										</p>
 									</div>
-									<div className={`text-xs sm:text-sm font-semibold px-3 py-1 sm:px-4 sm:py-1.5 rounded-full border ${getStatusColorClass()}`} aria-hidden="true">
+									<div className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${getStatusColorClass()}`} aria-hidden="true">
 										{getStatusLabel()}
 									</div>
 								</button>
 
 								<button 
 									onClick={() => setActiveModal("notifications")}
-									className="p-6 flex items-center gap-4 sm:gap-6 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer active:bg-gray-100 dark:active:bg-slate-700 text-left focus:outline-none focus-visible:bg-gray-50 dark:focus-visible:bg-slate-700/50 min-h-[48px]"
+									className="p-4 flex items-center gap-4 hover:bg-gray-50 dark:hover:bg-slate-800/40 transition-colors cursor-pointer text-left focus:outline-none min-h-[48px]"
 									role="listitem"
 									aria-label="Notification Settings"
 								>
-									<div className="w-12 h-12 sm:w-14 sm:h-14 bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 rounded-2xl flex items-center justify-center shadow-sm shrink-0" aria-hidden="true">
-										<Bell size={24} />
+									<div className="w-10 h-10 bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 rounded-xl flex items-center justify-center shadow-sm shrink-0" aria-hidden="true">
+										<Bell size={20} />
 									</div>
 									<div className="flex-1">
-										<h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-gray-100">
+										<h3 className="text-sm font-bold text-gray-800 dark:text-gray-100 leading-tight">
 											Notifications
 										</h3>
-										<p className="text-sm sm:text-base text-gray-500 dark:text-slate-400">
+										<p className="text-[10px] text-gray-500 dark:text-slate-400 mt-0.5">
 											Alerts for errors and status changes
 										</p>
 									</div>
-									<div className={`text-xs sm:text-sm font-semibold px-3 py-1 rounded-full border ${notifEnabled ? "text-indigo-700 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-500/10 border-indigo-200 dark:border-indigo-500/20" : "text-gray-500 dark:text-slate-400 bg-gray-100 dark:bg-slate-700 border-gray-200 dark:border-slate-650"}`} aria-hidden="true">
+									<div className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${notifEnabled ? "text-indigo-700 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-500/10 border-indigo-200 dark:border-indigo-500/20" : "text-gray-500 dark:text-slate-400 bg-gray-100 dark:bg-slate-800 border-gray-200 dark:border-slate-700"}`} aria-hidden="true">
 										{notifEnabled ? "Enabled" : "Disabled"}
 									</div>
 								</button>
@@ -210,9 +188,9 @@ export function SettingsView() {
 					</section>
 				</div>
 
-				<div className="mt-8 flex justify-center">
-					<p className="text-xs sm:text-sm text-gray-400 dark:text-slate-500 flex items-center gap-2 bg-white dark:bg-slate-800 px-4 py-2 rounded-full border border-gray-200 dark:border-slate-700 shadow-sm">
-						<SettingsIcon size={16} className="animate-spin-slow" aria-hidden="true" />
+				<div className="mt-4 flex justify-center">
+					<p className="text-[10px] text-gray-400 dark:text-slate-500 flex items-center gap-1.5 bg-white dark:bg-slate-800 px-3.5 py-1.5 rounded-full border border-gray-200 dark:border-slate-700 shadow-sm font-bold">
+						<SettingsIcon size={12} className="animate-spin-slow" aria-hidden="true" />
 						Sanad Kiosk Interface v1.0.0
 					</p>
 				</div>
@@ -221,7 +199,7 @@ export function SettingsView() {
 			{/* ==================== CONNECTION MODAL ==================== */}
 			{activeModal === "connection" && (
 				<div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
-					<div className="bg-white dark:bg-slate-800 rounded-[2rem] p-6 w-full max-w-md border border-gray-150 dark:border-slate-700 shadow-2xl flex flex-col gap-5">
+					<div className="bg-white dark:bg-slate-800 rounded-[2rem] p-6 w-full max-w-md border border-gray-200 dark:border-slate-700 shadow-2xl flex flex-col gap-5">
 						<div className="flex justify-between items-center">
 							<h3 className="text-xl font-bold text-gray-900 dark:text-white">Connection Settings</h3>
 							<button onClick={() => setActiveModal("none")} className="p-2 text-gray-500 hover:text-gray-800 dark:text-slate-400 dark:hover:text-slate-200 cursor-pointer"><X size={20} /></button>
@@ -278,7 +256,7 @@ export function SettingsView() {
 			{/* ==================== NOTIFICATIONS MODAL ==================== */}
 			{activeModal === "notifications" && (
 				<div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
-					<div className="bg-white dark:bg-slate-800 rounded-[2rem] p-6 w-full max-w-sm border border-gray-150 dark:border-slate-700 shadow-2xl flex flex-col gap-5">
+					<div className="bg-white dark:bg-slate-800 rounded-[2rem] p-6 w-full max-w-sm border border-gray-200 dark:border-slate-700 shadow-2xl flex flex-col gap-5">
 						<div className="flex justify-between items-center">
 							<h3 className="text-xl font-bold text-gray-900 dark:text-white">Alert Preferences</h3>
 							<button onClick={() => setActiveModal("none")} className="p-2 text-gray-500 hover:text-gray-800 dark:text-slate-400 dark:hover:text-slate-200 cursor-pointer"><X size={20} /></button>

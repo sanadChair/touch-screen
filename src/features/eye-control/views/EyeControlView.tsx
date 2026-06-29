@@ -276,40 +276,40 @@ export function EyeControlView() {
 	const activeLabel = menuPath[menuPath.length - 1];
 
 	return (
-		<div className="flex-1 h-full flex flex-col p-4 sm:p-6 bg-gradient-to-tr from-[#0a0f1e] via-[#030712] to-[#0d1527] text-white overflow-hidden justify-between kiosk-view">
+		<div className="flex-1 h-full flex flex-col p-3 bg-gradient-to-tr from-[#0a0f1e] via-[#030712] to-[#0d1527] text-white overflow-hidden justify-between kiosk-view select-none">
 			{/* Header */}
-			<header className="flex items-center justify-between border-b border-slate-800/80 pb-3 h-10 shrink-0">
-				<div className="flex items-center gap-2">
-					<Compass className="text-indigo-400 animate-spin-slow shrink-0" size={20} />
-					<div className="flex items-center gap-1.5 text-sm font-semibold text-gray-300">
-						<span>Hands-Free Control</span>
+			<header className="flex items-center justify-between border-b border-slate-800/80 pb-2 h-8 shrink-0">
+				<div className="flex items-center gap-1.5">
+					<Compass className="text-indigo-400 animate-spin-slow shrink-0" size={16} />
+					<div className="flex items-center gap-1 text-xs font-semibold text-gray-300">
+						<span>Hands-Free</span>
 						<span>&gt;</span>
 						<span className="text-indigo-400 font-bold">{menuPath.join(" > ")}</span>
 					</div>
 				</div>
-				<div className="text-xs bg-slate-800/80 px-3 py-1 rounded-full border border-slate-700/60 text-slate-400 font-bold">
+				<div className="text-[10px] bg-slate-800/80 px-2.5 py-0.5 rounded-full border border-slate-700/60 text-slate-400 font-extrabold">
 					Dwell: {(dwellTimeMs / 1000).toFixed(1)}s
 				</div>
 			</header>
 
 			{/* Main Content Workspace */}
-			<div className="flex-1 min-h-0 flex items-center justify-between gap-4 py-0.5">
+			<div className="flex-1 min-h-0 flex items-center justify-between gap-3 py-1">
 				{/* Left Info Sidebar */}
-				<div className="hidden lg:flex flex-col gap-4 w-44 bg-slate-900/40 p-4 border border-slate-800/60 rounded-3xl backdrop-blur-md self-stretch justify-center">
+				<div className="flex flex-col gap-3.5 w-32 bg-slate-900/40 p-3 border border-slate-800/60 rounded-2xl backdrop-blur-md self-stretch justify-center shrink-0">
 					<div>
-						<span className="text-[10px] font-extrabold uppercase tracking-widest text-indigo-400 block mb-1">Robot Status</span>
-						<div className="flex items-center gap-1.5">
-							<span className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)] animate-pulse" />
-							<span className="text-sm font-bold">Online</span>
+						<span className="text-[9px] font-bold uppercase tracking-wider text-indigo-400 block mb-0.5">Robot Status</span>
+						<div className="flex items-center gap-1">
+							<span className={`w-1.5 h-1.5 rounded-full shadow-md animate-pulse ${isOffline ? "bg-red-500 shadow-red-500/60" : "bg-green-500 shadow-green-500/60"}`} />
+							<span className="text-xs font-bold">{isOffline ? "Offline" : "Online"}</span>
 						</div>
 					</div>
 					<div>
-						<span className="text-[10px] font-extrabold uppercase tracking-widest text-indigo-400 block mb-1">Active Rooms</span>
-						<span className="text-sm font-bold">{rooms.length} registered</span>
+						<span className="text-[9px] font-bold uppercase tracking-wider text-indigo-400 block mb-0.5">Active Rooms</span>
+						<span className="text-xs font-bold">{rooms.length} registered</span>
 					</div>
 					<div>
-						<span className="text-[10px] font-extrabold uppercase tracking-widest text-indigo-400 block mb-1">Battery</span>
-						<span className="text-sm font-bold">94%</span>
+						<span className="text-[9px] font-bold uppercase tracking-wider text-indigo-400 block mb-0.5">Battery</span>
+						<span className="text-xs font-bold">94%</span>
 					</div>
 				</div>
 
@@ -321,25 +321,25 @@ export function EyeControlView() {
 						onAction={handleAction}
 						onBack={menuPath.length > 1 ? handleGoBack : undefined}
 						centerLabel={activeLabel}
-						size={isOffline ? 370 : 410} // Fit nicely in the viewport height
+						size={320}
 					/>
 				</div>
 
 				{/* Right Info Sidebar */}
-				<div className="hidden lg:flex flex-col gap-4 w-44 bg-slate-900/40 p-4 border border-slate-800/60 rounded-3xl backdrop-blur-md self-stretch justify-center">
+				<div className="flex flex-col gap-3.5 w-32 bg-slate-900/40 p-3 border border-slate-800/60 rounded-2xl backdrop-blur-md self-stretch justify-center shrink-0">
 					<div>
-						<span className="text-[10px] font-extrabold uppercase tracking-widest text-indigo-400 block mb-1">Command Output</span>
-						<div className="flex items-start gap-1.5 text-xs text-slate-300 leading-tight">
-							<Bot size={14} className="shrink-0 text-slate-400 mt-0.5" />
-							<span className="font-medium">{statusMessage}</span>
+						<span className="text-[9px] font-bold uppercase tracking-wider text-indigo-400 block mb-0.5">Command Output</span>
+						<div className="flex items-start gap-1 text-[10px] text-slate-300 leading-snug">
+							<Bot size={12} className="shrink-0 text-slate-400 mt-0.5" />
+							<span className="font-semibold line-clamp-3">{statusMessage}</span>
 						</div>
 					</div>
 
 					<div>
-						<span className="text-[10px] font-extrabold uppercase tracking-widest text-indigo-400 block mb-1">Wheelchair Speed</span>
-						<div className="font-mono text-xs text-slate-300">
-							<p>Linear: {currentVelocity.linear.toFixed(2)} m/s</p>
-							<p className="mt-1">Angular: {currentVelocity.angular.toFixed(2)} rad/s</p>
+						<span className="text-[9px] font-bold uppercase tracking-wider text-indigo-400 block mb-0.5">Speed Info</span>
+						<div className="font-mono text-[10px] text-slate-300">
+							<p>Lin: {currentVelocity.linear.toFixed(2)} m/s</p>
+							<p className="mt-0.5">Ang: {currentVelocity.angular.toFixed(2)} r/s</p>
 						</div>
 					</div>
 				</div>

@@ -47,23 +47,23 @@ export function RoomModal({ isOpen, onClose, onSave }: RoomModalProps) {
 
 	return (
 		<div className="fixed inset-0 z-100 flex items-center justify-center bg-black/50 backdrop-blur-sm transition-opacity">
-			<div className="bg-white dark:bg-slate-900 w-[90%] max-w-lg rounded-[2.5rem] p-8 shadow-2xl border border-gray-100 dark:border-slate-800 flex flex-col gap-8 animate-in zoom-in-95 duration-200">
+			<div className="bg-white dark:bg-slate-900 w-[90%] max-w-md rounded-3xl p-5 shadow-2xl border border-gray-100 dark:border-slate-800 flex flex-col gap-4 animate-in zoom-in-95 duration-200">
 				
 				<div className="flex justify-between items-center">
-					<h2 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
+					<h2 className="text-xl font-black text-gray-900 dark:text-white tracking-tight">
 						Save Local Area
 					</h2>
 					<button
 						onClick={onClose}
-						className="p-3 bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white rounded-full transition-colors"
+						className="p-2 bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white rounded-full transition-colors cursor-pointer"
 					>
-						<X size={24} />
+						<X size={18} />
 					</button>
 				</div>
 
-				<div className="flex flex-col gap-6">
-					<div className="flex flex-col gap-3">
-						<label className="text-sm font-bold text-gray-500 dark:text-slate-400 uppercase tracking-widest pl-1">
+				<div className="flex flex-col gap-4">
+					<div className="flex flex-col gap-1.5">
+						<label className="text-[10px] font-extrabold text-gray-400 dark:text-slate-500 uppercase tracking-widest pl-1">
 							Area Name
 						</label>
 						<input
@@ -71,16 +71,16 @@ export function RoomModal({ isOpen, onClose, onSave }: RoomModalProps) {
 							value={name}
 							onInput={(e) => setName(e.currentTarget.value)}
 							placeholder="e.g. Living Room, Main Office..."
-							className="w-full bg-gray-100 dark:bg-slate-800 text-gray-900 dark:text-white text-xl font-medium px-6 py-4 rounded-2xl border-2 border-transparent focus:border-blue-500 outline-none transition-colors"
+							className="w-full bg-gray-100 dark:bg-slate-800 text-gray-900 dark:text-white text-base font-semibold px-4 py-2.5 rounded-xl border-2 border-transparent focus:border-blue-500 outline-none transition-colors"
 							autoFocus
 						/>
 					</div>
 
-					<div className="flex flex-col gap-3">
-						<label className="text-sm font-bold text-gray-500 dark:text-slate-400 uppercase tracking-widest pl-1">
+					<div className="flex flex-col gap-1.5">
+						<label className="text-[10px] font-extrabold text-gray-400 dark:text-slate-500 uppercase tracking-widest pl-1">
 							Select Icon
 						</label>
-						<div className="grid grid-cols-4 gap-3">
+						<div className="grid grid-cols-4 gap-2">
 							{AVAILABLE_ICONS.map(({ name: iconName, Component }) => {
 								const isSelected = selectedIcon === iconName;
 								return (
@@ -88,13 +88,13 @@ export function RoomModal({ isOpen, onClose, onSave }: RoomModalProps) {
 										key={iconName}
 										onClick={() => setSelectedIcon(iconName)}
 										className={clsx(
-											"flex items-center justify-center p-4 rounded-2xl transition-all duration-200 border-2",
+											"flex items-center justify-center p-2.5 rounded-xl transition-all duration-200 border-2 cursor-pointer",
 											isSelected
 												? "border-blue-500 bg-blue-50 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 scale-105"
-												: "border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-500 dark:text-slate-400 hover:border-gray-300 dark:hover:border-slate-600"
+												: "border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-gray-500 dark:text-slate-400 hover:border-gray-200 dark:hover:border-slate-700"
 										)}
 									>
-										<Component size={32} />
+										<Component size={22} />
 									</button>
 								);
 							})}
@@ -102,19 +102,19 @@ export function RoomModal({ isOpen, onClose, onSave }: RoomModalProps) {
 					</div>
 				</div>
 
-				<div className="flex gap-4 pt-4">
+				<div className="flex gap-3 pt-2">
 					<button
 						onClick={onClose}
-						className="flex-1 py-5 text-xl font-bold bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 rounded-2xl active:scale-95 transition-all"
+						className="flex-1 py-3 text-sm font-bold bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 rounded-xl active:scale-95 transition-all cursor-pointer"
 					>
 						Cancel
 					</button>
 					<button
 						onClick={handleSave}
 						disabled={!name.trim()}
-						className="flex-1 py-5 text-xl font-bold rounded-2xl active:scale-95 transition-all text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
+						className="flex-1 py-3 text-sm font-bold rounded-xl active:scale-95 transition-all text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer"
 					>
-						<Check size={24} />
+						<Check size={18} />
 						Save Area
 					</button>
 				</div>

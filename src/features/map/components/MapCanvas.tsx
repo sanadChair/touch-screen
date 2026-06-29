@@ -10,6 +10,7 @@ import { refineMapHeavy, refineMapLight } from "../utils/mapFilter";
 import { renderMapToCanvas } from "../utils/mapRenderer";
 import { RoomActionsOverlay } from "./RoomActionsOverlay";
 import { RoomModal } from "./RoomModal";
+import { segmentRoomFromPoint } from "../utils/segmentation";
 
 const CUSTOM_CURSOR = `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="6" stroke="%233b82f6" stroke-width="2" fill="rgba(59, 130, 246, 0.2)"/><circle cx="16" cy="16" r="1.5" fill="%23ef4444"/><path d="M16 2L16 8M16 30L16 24M2 16L8 16M30 16L24 16" stroke="%233b82f6" stroke-width="2" stroke-linecap="round"/></svg>') 16 16, crosshair`;
 const ICON_MAP: Record<string, typeof Home> = { Sofa, Utensils, BedDouble, Monitor, Briefcase, Home, MapPin, Volume2 };
@@ -240,6 +241,7 @@ export const MapCanvas = ({ mapData, robotPose, onGoalClick, className, external
 				const minY = Math.min(dragStart.pixelY_ROS, dragCurrent.pixelY_ROS);
 				const maxY = Math.max(dragStart.pixelY_ROS, dragCurrent.pixelY_ROS);
 				if (Math.abs(maxX - minX) > 5 && Math.abs(maxY - minY) > 5) {
+					// Manual drag addition
 					setPendingRoom({
 						pixelMinX: minX,
 						pixelMaxX: maxX,
@@ -254,6 +256,30 @@ export const MapCanvas = ({ mapData, robotPose, onGoalClick, className, external
 						worldTheta: 0,
 					});
 					setIsModalOpen(true);
+				} else {
+					// Single click/tap auto-segmentation
+					const segResult = segmentRoomFromPoint(
+						mapData,
+						Math.floor(dragStart.pixelX),
+						Math.floor(dragStart.pixelY_ROS)
+					);
+					if (segResult) {
+						const { boundingBox } = segResult;
+						setPendingRoom({
+							pixelMinX: boundingBox.minX,
+							pixelMaxX: boundingBox.maxX,
+							pixelMinY: boundingBox.minY,
+							pixelMaxY: boundingBox.maxY,
+							minX: mapData.info.origin.position.x + boundingBox.minX * mapData.info.resolution,
+							maxX: mapData.info.origin.position.x + boundingBox.maxX * mapData.info.resolution,
+							minY: mapData.info.origin.position.y + boundingBox.minY * mapData.info.resolution,
+							maxY: mapData.info.origin.position.y + boundingBox.maxY * mapData.info.resolution,
+							worldX: mapData.info.origin.position.x + ((boundingBox.minX + boundingBox.maxX) / 2) * mapData.info.resolution,
+							worldY: mapData.info.origin.position.y + ((boundingBox.minY + boundingBox.maxY) / 2) * mapData.info.resolution,
+							worldTheta: 0,
+						});
+						setIsModalOpen(true);
+					}
 				}
 			}
 			setDragStart(null);
@@ -349,10 +375,10 @@ export const MapCanvas = ({ mapData, robotPose, onGoalClick, className, external
 											onTouchStart={(event) => { event.stopPropagation(); onPanStart(event); }}
 											onTouchEnd={(event) => { event.stopPropagation(); if (originalOnPanEnd()) zoomToRoom(room); }}
 											style={{ scale: `${1 / Math.max(0.5, transform.scale)}`, transition: "scale 0.1s ease-out", pointerEvents: isAddingRoom ? "none" : "auto" }}
-											className={cn("flex flex-col items-center justify-center text-white px-2 py-1 rounded-lg shadow-lg transition-colors cursor-pointer", isSelected ? "bg-emerald-600" : "bg-indigo-600/90 hover:bg-indigo-500")}
+											className={cn("flex flex-col items-center justify-center text-white px-1.5 py-0.5 rounded-md shadow-md transition-colors cursor-pointer", isSelected ? "bg-emerald-600" : "bg-indigo-600/90 hover:bg-indigo-500")}
 										>
-											<IconComponent size={14} className="mb-0.5" />
-											<span className="text-[10px] font-bold tracking-wider truncate max-w-[80px]" style={{ fontSize: `${Math.max(8, 12 / transform.scale)}px` }}>{room.name}</span>
+											<IconComponent size={10} className="mb-0" />
+											<span className="text-[8px] font-bold tracking-wider truncate max-w-[60px]" style={{ fontSize: `${Math.max(6.5, 9 / transform.scale)}px` }}>{room.name}</span>
 										</div>
 									</div>
 								);
@@ -370,7 +396,7 @@ export const MapCanvas = ({ mapData, robotPose, onGoalClick, className, external
 				)}
 
 				{robotPose && (
-					<div className="absolute top-6 right-6 z-40 bg-blue-600/90 dark:bg-blue-500/80 text-white text-xs px-4 py-3 rounded-xl backdrop-blur-md shadow-lg font-mono pointer-events-none flex flex-col gap-1.5 transition-colors duration-300">
+					<div className="hidden absolute top-6 right-6 z-40 bg-blue-600/90 dark:bg-blue-500/80 text-white text-xs px-4 py-3 rounded-xl backdrop-blur-md shadow-lg font-mono pointer-events-none flex flex-col gap-1.5 transition-colors duration-300">
 						<span className="font-bold">Map Frame Pose</span>
 						<span>X: {robotPose.x.toFixed(3)} m</span>
 						<span>Y: {robotPose.y.toFixed(3)} m</span>

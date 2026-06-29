@@ -1,6 +1,7 @@
 import type { IMapService } from "./IMapService";
 import type { GoalPoint, NavigationState, OccupancyGrid, RobotPose, NavigationStatus } from "../types";
 import { getServerUrl } from "../../../shared/lib/config";
+import { setServerHealth } from "../../../shared/hooks/useServerHealth";
 
 export class ServerMapService implements IMapService {
 	private serverUrl = getServerUrl();
@@ -35,6 +36,7 @@ export class ServerMapService implements IMapService {
 				});
 			} catch (error) {
 				console.error("Error fetching map:", error);
+				setServerHealth("offline");
 			}
 		};
 
@@ -55,6 +57,7 @@ export class ServerMapService implements IMapService {
 				});
 			} catch (error) {
 				console.error("Error fetching pose:", error);
+				setServerHealth("offline");
 			}
 		};
 
@@ -89,6 +92,7 @@ export class ServerMapService implements IMapService {
 			})
 			.catch((error) => {
 				console.error("Error sending goal:", error);
+				setServerHealth("offline");
 				this.navigationState = {
 					...this.navigationState,
 					status: "failed",
@@ -127,6 +131,7 @@ export class ServerMapService implements IMapService {
 			})
 			.catch((error) => {
 				console.error("Error canceling goal:", error);
+				setServerHealth("offline");
 			});
 	}
 
@@ -211,6 +216,7 @@ export class ServerMapService implements IMapService {
 				}
 			} catch (error) {
 				console.error("Error polling goal:", error);
+				setServerHealth("offline");
 			}
 		};
 

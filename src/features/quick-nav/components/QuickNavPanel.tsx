@@ -74,18 +74,18 @@ export function QuickNavPanel({
 	const { handleKeyDown } = useArrowNavigation();
 
 	return (
-		<div className="flex flex-col gap-5" role="region" aria-labelledby="quick-nav-heading">
-			<div className="flex items-center gap-3">
-				<div className="p-2 bg-gray-100 dark:bg-slate-800 rounded-lg" aria-hidden="true">
-					<Navigation size={20} className="text-gray-500 dark:text-slate-400" />
+		<div className="flex flex-col gap-2" role="region" aria-labelledby="quick-nav-heading">
+			<div className="flex items-center gap-1.5 px-1">
+				<div className="p-1 bg-gray-100 dark:bg-slate-800 rounded-md" aria-hidden="true">
+					<Navigation size={14} className="text-gray-500 dark:text-slate-400" />
 				</div>
-				<h2 id="quick-nav-heading" className="text-xl font-bold text-gray-800 dark:text-gray-100 tracking-tight">
-					Quick Navigation
+				<h2 id="quick-nav-heading" className="text-xs font-extrabold text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+					Quick Nav
 				</h2>
 			</div>
 
 			<div 
-				className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4" 
+				className="flex flex-col gap-1.5" 
 				role="list"
 				onKeyDown={handleKeyDown}
 			>
@@ -103,45 +103,36 @@ export function QuickNavPanel({
 							aria-pressed={isActive}
 							tabIndex={(activeDestinationId ? isActive : destinations.indexOf(dest) === 0) ? 0 : -1}
 							className={clsx(
-								"group relative flex flex-col items-center gap-4 p-6 rounded-[1.5rem] border-2 transition-all duration-300 ease-out cursor-pointer overflow-hidden focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/30",
+								"group relative flex items-center gap-3 p-2 rounded-xl border transition-all duration-205 ease-out cursor-pointer overflow-hidden focus:outline-none",
 								isActive
 									? [
 											colors.activeBg,
-											"border-transparent text-white shadow-xl scale-[0.98]",
-											colors.glow,
+											"border-transparent text-white shadow-md scale-[0.98]",
 										]
 									: [
-											colors.bg,
-											colors.border,
-											"hover:shadow-lg hover:scale-[1.02]",
-											`hover:${colors.glow}`,
+											"bg-white dark:bg-slate-800/40 border-gray-200 dark:border-slate-800",
+											"hover:bg-gray-50 dark:hover:bg-slate-800/80 text-gray-700 dark:text-gray-200"
 										],
 							)}
 						>
 							<div
 								className={clsx(
-									"w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300",
+									"w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 shrink-0",
 									isActive
-										? "bg-white/20 backdrop-blur-md shadow-inner"
-										: ["bg-white dark:bg-slate-800 shadow-sm", colors.icon],
+										? "bg-white/20"
+										: ["bg-gray-50 dark:bg-slate-900", colors.icon],
 								)}
 								aria-hidden="true"
 							>
-								<Icon size={28} className={isActive ? "text-white" : colors.icon} strokeWidth={2.5} />
+								<Icon size={18} className={isActive ? "text-white" : colors.icon} strokeWidth={2.5} />
 							</div>
 
-							<span className={clsx(
-								"text-base font-bold tracking-wide transition-colors duration-300",
-								isActive ? "text-white" : "text-gray-700 dark:text-gray-200"
-							)}>
+							<span className="text-xs font-bold truncate">
 								{dest.label}
 							</span>
 
 							{isActive && (
-								<div className="absolute top-4 right-4 flex items-center gap-1.5 bg-white/20 backdrop-blur-md px-2 py-1 rounded-full" aria-hidden="true">
-									<div className="w-2 h-2 rounded-full bg-white animate-pulse shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
-									<span className="text-[10px] uppercase font-bold text-white tracking-wider">Active</span>
-								</div>
+								<div className="ml-auto w-2 h-2 rounded-full bg-white animate-pulse mr-1" aria-hidden="true" />
 							)}
 						</button>
 					);

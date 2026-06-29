@@ -1,6 +1,6 @@
 import type { IMapService } from "./IMapService";
 import { MOCK_OCCUPANCY_GRID } from "../mocks/mockMap";
-import type { NavigationState, OccupancyGrid, RobotPose, GoalPoint } from "../types";
+import type { NavigationState, OccupancyGrid, RobotPose, GoalPoint, PathPoint } from "../types";
 
 export class MockMapService implements IMapService {
 	private navigationState: NavigationState = {
@@ -29,21 +29,26 @@ export class MockMapService implements IMapService {
 	}
 
 	setGoal(x: number, y: number, label?: string): void {
-		this.navigationState = {
-			...this.navigationState,
-			status: "goal_sent",
-			activeGoal: { x, y, label },
-			lastFeedback: null,
-		};
-		this.emitNavigation();
-
-		// Simulate navigation progress
 		if (this.interval) clearInterval(this.interval);
 		let steps = 0;
 		const targetX = x;
 		const targetY = y;
 		const startX = this.currentPose.x;
 		const startY = this.currentPose.y;
+		const startRotation = this.currentPose.rotation;
+
+		const pathHistory: PathPoint[] = [
+			{ x: startX, y: startY, rotation: startRotation, timestamp: Date.now() },
+		];
+
+		this.navigationState = {
+			...this.navigationState,
+			status: "goal_sent",
+			activeGoal: { x, y, label },
+			lastFeedback: null,
+			pathHistory: [...pathHistory],
+		};
+		this.emitNavigation();
 
 		this.interval = setInterval(() => {
 			steps++;
@@ -51,21 +56,36 @@ export class MockMapService implements IMapService {
 			if (progress >= 1) {
 				clearInterval(this.interval);
 				this.currentPose = { x: targetX, y: targetY, rotation: 0 };
+				pathHistory.push({
+					x: targetX,
+					y: targetY,
+					rotation: 0,
+					timestamp: Date.now(),
+				});
 				this.navigationState = {
 					...this.navigationState,
 					status: "succeeded",
 					activeGoal: null,
 					lastFeedback: null,
+					pathHistory: [...pathHistory],
 				};
 			} else {
+				const nextRotation = Math.atan2(targetY - startY, targetX - startX);
 				this.currentPose = {
 					x: startX + (targetX - startX) * progress,
 					y: startY + (targetY - startY) * progress,
-					rotation: Math.atan2(targetY - startY, targetX - startX),
+					rotation: nextRotation,
 				};
+				pathHistory.push({
+					x: this.currentPose.x,
+					y: this.currentPose.y,
+					rotation: nextRotation,
+					timestamp: Date.now(),
+				});
 				this.navigationState = {
 					...this.navigationState,
 					status: "navigating",
+					pathHistory: [...pathHistory],
 					lastFeedback: {
 						distanceRemaining: Math.hypot(targetX - this.currentPose.x, targetY - this.currentPose.y),
 						estimatedTimeRemainingSec: 10 - steps,
