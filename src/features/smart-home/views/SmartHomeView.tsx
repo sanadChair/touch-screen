@@ -67,9 +67,9 @@ export function SmartHomeView() {
 		setIsScanning(true);
 		setErrorMessage(null);
 		try {
-			const serverUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:5051/api/v1";
+			const serverUrl = import.meta.env.VITE_SERVER_URL || "http://piserver.local:5051/api/v1";
 			const connType = import.meta.env.VITE_CONNECTION_TYPE || "NATIVE";
-			
+
 			if (connType === "MOCK" || getServerHealth() === "offline") {
 				// Simulate offline discovery
 				await new Promise((resolve) => setTimeout(resolve, 1500));
