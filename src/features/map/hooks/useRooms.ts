@@ -5,14 +5,14 @@ import type { DefinedRoom, RoomAction } from "../types";
 
 export function useRooms() {
 	const roomService = RoomServiceFactory.getService();
-	const [rooms, setRooms] = useState<DefinedRoom[]>(
+	const [rawRooms, setRawRooms] = useState<DefinedRoom[]>(
 		roomService.getRoomsSnapshot(),
 	);
-	const [isLoading, setIsLoading] = useState(rooms.length === 0);
+	const [isLoading, setIsLoading] = useState(rawRooms.length === 0);
 
 	useEffect(() => {
 		const unsubscribe = roomService.subscribe((nextRooms) => {
-			setRooms(nextRooms);
+			setRawRooms(nextRooms);
 			setIsLoading(false);
 		});
 
@@ -56,5 +56,8 @@ export function useRooms() {
 	const getActionsForRoom = (room: DefinedRoom): RoomAction[] =>
 		getRoomActions(room);
 
-	return { rooms, saveRoom, deleteRoom, getActionsForRoom, isLoading, refreshRooms };
+	const rooms = rawRooms.filter((r) => r.id !== "unassigned");
+	const unassignedDevices = rawRooms.find((r) => r.id === "unassigned")?.devices ?? [];
+
+	return { rooms, unassignedDevices, saveRoom, deleteRoom, getActionsForRoom, isLoading, refreshRooms };
 }

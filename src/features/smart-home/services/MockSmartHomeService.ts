@@ -22,4 +22,9 @@ export class MockSmartHomeService implements ISmartHomeService {
 		// Update state in MockRoomService
 		MockRoomService.getInstance().updateDeviceState(action.deviceId, action.command, value);
 	}
+
+	public async changeDeviceRoom(deviceId: string, roomId: string): Promise<void> {
+		await new Promise((resolve) => setTimeout(resolve, 200));
+		MockRoomService.getInstance().moveDeviceToRoom(deviceId, roomId);
+	}
 }

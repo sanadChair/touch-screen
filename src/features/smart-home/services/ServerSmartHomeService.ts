@@ -39,4 +39,17 @@ export class ServerSmartHomeService implements ISmartHomeService {
 			throw new Error(errResult.error?.message || `Failed to control device: ${response.statusText}`);
 		}
 	}
+
+	public async changeDeviceRoom(deviceId: string, roomId: string): Promise<void> {
+		const response = await fetch(`${this.serverUrl}/smart-home/devices/${deviceId}/room`, {
+			method: "PATCH",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ roomId }),
+		});
+
+		if (!response.ok) {
+			const errResult = await response.json().catch(() => ({}));
+			throw new Error(errResult.error?.message || `Failed to change device room: ${response.statusText}`);
+		}
+	}
 }
