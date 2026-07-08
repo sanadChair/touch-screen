@@ -1,11 +1,9 @@
 import { useMemo, useState, useEffect } from "preact/hooks";
 import { useRooms } from "../../map/hooks/useRooms";
-import { QuickNavServiceFactory } from "../services/QuickNavServiceFactory";
 import type { QuickNavDestination } from "../types";
 import { useMapData } from "../../map/hooks/useMapData";
 
 export function useQuickNav() {
-	const service = QuickNavServiceFactory.getService();
 	const { rooms } = useRooms();
 	const [activeDestinationId, setActiveDestinationId] = useState<string | null>(null);
 	const { navigationStatus } = useMapData();
@@ -21,14 +19,13 @@ export function useQuickNav() {
 	);
 
 	useEffect(() => {
-		if (["idle", "canceled", "failed", "succeeded"].includes(navigationStatus)) {
+		if (["canceled", "failed", "succeeded"].includes(navigationStatus)) {
 			setActiveDestinationId(null);
 		}
 	}, [navigationStatus]);
 
 	const navigateTo = (destination: QuickNavDestination) => {
 		setActiveDestinationId(destination.id);
-		service.navigateTo(destination);
 	};
 
 	return { destinations, navigateTo, activeDestinationId };
