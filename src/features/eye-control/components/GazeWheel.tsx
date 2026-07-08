@@ -3,6 +3,7 @@ import { GazeSector } from "./GazeSector";
 import type { WheelNode } from "../types";
 import { ArrowLeft } from "lucide-preact";
 import { useMemo } from "preact/hooks";
+import { useTheme } from "../../../shared/hooks/useTheme";
 
 interface GazeWheelProps {
 	nodes: WheelNode[];
@@ -21,6 +22,7 @@ export const GazeWheel = ({
 	centerLabel = "MENU",
 	size = 380,
 }: GazeWheelProps) => {
+	const { resolvedTheme } = useTheme();
 	const cx = size / 2;
 	const cy = size / 2;
 	const outerR = size / 2 - 5; // 185px
@@ -114,8 +116,24 @@ export const GazeWheel = ({
 						cx={cx}
 						cy={cy}
 						r={centerCircleR}
-						className={`transition-all duration-300 ${onBack ? "fill-slate-900/90 dark:fill-slate-950/90 hover:fill-slate-900 dark:hover:fill-black" : "fill-slate-900/95 dark:fill-slate-950/95"}`}
-						stroke={isBackTriggered ? "#10b981" : isBackHovered ? "#818cf8" : "rgba(71, 85, 105, 0.4)"}
+						className={`transition-all duration-300 ${
+							resolvedTheme === "light"
+								? onBack
+									? "fill-white hover:fill-gray-100"
+									: "fill-white"
+								: onBack
+									? "fill-slate-900/90 dark:fill-slate-950/90 hover:fill-slate-900 dark:hover:fill-black"
+									: "fill-slate-900/95 dark:fill-slate-950/95"
+						}`}
+						stroke={
+							isBackTriggered
+								? "#10b981"
+								: isBackHovered
+									? "#818cf8"
+									: resolvedTheme === "light"
+										? "rgba(203, 213, 225, 0.9)"
+										: "rgba(71, 85, 105, 0.4)"
+						}
 						strokeWidth={2}
 					/>
 
@@ -143,23 +161,37 @@ export const GazeWheel = ({
 						height={centerCircleR * 2}
 						className="pointer-events-none"
 					>
-						<div className="w-full h-full flex flex-col items-center justify-center text-center p-3 text-white">
+						<div className={`w-full h-full flex flex-col items-center justify-center text-center p-3 ${
+							resolvedTheme === "light" ? "text-gray-800" : "text-white"
+						}`}>
 							{onBack ? (
 								<div className="flex flex-col items-center justify-center gap-1">
 									<ArrowLeft
 										size={24}
-										className={`transition-all duration-300 ${isBackTriggered ? "text-emerald-400 scale-90" : isBackHovered ? "text-indigo-400 scale-110 -translate-x-1" : "text-gray-400"}`}
+										className={`transition-all duration-300 ${
+											isBackTriggered
+												? "text-emerald-500"
+												: isBackHovered
+													? "text-indigo-600 scale-110 -translate-x-1"
+													: "text-gray-400"
+										}`}
 									/>
-									<span className="text-[11px] font-extrabold tracking-widest text-gray-300 uppercase">
+									<span className={`text-[11px] font-extrabold tracking-widest uppercase ${
+										resolvedTheme === "light" ? "text-gray-500" : "text-gray-300"
+									}`}>
 										{isBackHovered ? `Back (${Math.round((1 - backProgress) * (dwellTimeMs / 1000))}s)` : "Gaze to Back"}
 									</span>
 								</div>
 							) : (
 								<div className="flex flex-col items-center justify-center">
-									<span className="text-[10px] font-extrabold tracking-widest text-slate-500 uppercase mb-0.5">
+									<span className={`text-[10px] font-extrabold tracking-widest uppercase mb-0.5 ${
+										resolvedTheme === "light" ? "text-gray-400" : "text-slate-500"
+									}`}>
 										CONTROL
 									</span>
-									<span className="text-sm font-extrabold tracking-wider truncate max-w-[120px] uppercase text-indigo-400">
+									<span className={`text-sm font-extrabold tracking-wider truncate max-w-[120px] uppercase ${
+										resolvedTheme === "light" ? "text-indigo-600" : "text-indigo-400"
+									}`}>
 										{centerLabel}
 									</span>
 								</div>

@@ -1,14 +1,18 @@
 import { useState, useEffect, useCallback } from "preact/hooks";
 
-type Theme = "light" | "dark" | "system";
+type Theme = "light" | "dark";
 
 export function useTheme() {
 	const [theme, setThemeState] = useState<Theme>("dark");
 	const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("dark");
 
 	useEffect(() => {
-		const storedTheme = localStorage.getItem("kiosk-theme") as Theme | null;
-		if (storedTheme) {
+		let storedTheme = localStorage.getItem("kiosk-theme") as string | null;
+		if (storedTheme === "system") {
+			storedTheme = "dark";
+			localStorage.setItem("kiosk-theme", "dark");
+		}
+		if (storedTheme === "light" || storedTheme === "dark") {
 			setThemeState(storedTheme);
 		}
 
@@ -30,16 +34,8 @@ export function useTheme() {
 	useEffect(() => {
 		const root = window.document.documentElement;
 		root.classList.remove("light", "dark");
-
-		let exactTheme: "light" | "dark";
-		if (theme === "system") {
-			exactTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-		} else {
-			exactTheme = theme;
-		}
-
-		root.classList.add(exactTheme);
-		setResolvedTheme(exactTheme);
+		root.classList.add(theme);
+		setResolvedTheme(theme);
 	}, [theme]);
 
 	return { theme, setTheme, resolvedTheme };

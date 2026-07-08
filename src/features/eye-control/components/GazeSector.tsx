@@ -1,6 +1,7 @@
 import * as Icons from "lucide-preact";
 import type { WheelNode } from "../types";
 import { cn } from "../../../shared/lib/utils";
+import { useTheme } from "../../../shared/hooks/useTheme";
 
 interface GazeSectorProps {
 	node: WheelNode;
@@ -79,6 +80,8 @@ export const GazeSector = ({
 	onMouseEnter,
 	onMouseLeave,
 }: GazeSectorProps) => {
+	const { resolvedTheme } = useTheme();
+
 	// Offset angles so the top sector (index 0) starts centered at -90 degrees (-pi/2)
 	const angleSize = (2 * Math.PI) / total;
 	const startAngle = -Math.PI / 2 + index * angleSize;
@@ -96,19 +99,19 @@ export const GazeSector = ({
 	// Place the progress line right on the outer rim of the sector
 	const progressArcPath = describeProgressArcPath(cx, cy, outerR - 4, startAngle, endAngle, progress);
 
-	// Determine theme colors based on state
-	let bgFill = "rgba(30, 41, 59, 0.7)"; // slate-800/70
-	let strokeColor = "rgba(51, 65, 85, 0.5)"; // slate-700/50
-	let textClass = "text-gray-300 dark:text-slate-200";
+	// Determine theme colors based on state and active theme mode
+	let bgFill = resolvedTheme === "light" ? "rgba(255, 255, 255, 0.85)" : "rgba(30, 41, 59, 0.7)";
+	let strokeColor = resolvedTheme === "light" ? "rgba(203, 213, 225, 0.7)" : "rgba(51, 65, 85, 0.5)";
+	let textClass = resolvedTheme === "light" ? "text-gray-700 font-bold" : "text-gray-300";
 
 	if (isTriggered) {
-		bgFill = "rgba(16, 185, 129, 0.8)"; // emerald-500/80
+		bgFill = "rgba(16, 185, 129, 0.85)"; // emerald-500/85
 		strokeColor = "rgba(52, 211, 153, 1)"; // emerald-400
-		textClass = "text-white";
+		textClass = "text-white font-extrabold";
 	} else if (isHovered) {
-		bgFill = "rgba(99, 102, 241, 0.35)"; // indigo-500/35
-		strokeColor = "rgba(129, 140, 248, 0.8)"; // indigo-400/80
-		textClass = "text-white";
+		bgFill = resolvedTheme === "light" ? "rgba(99, 102, 241, 0.15)" : "rgba(99, 102, 241, 0.35)"; // indigo overlay
+		strokeColor = resolvedTheme === "light" ? "rgba(99, 102, 241, 0.7)" : "rgba(129, 140, 248, 0.8)";
+		textClass = resolvedTheme === "light" ? "text-indigo-600 font-extrabold" : "text-white font-bold";
 	}
 
 	return (

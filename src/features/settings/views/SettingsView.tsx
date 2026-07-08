@@ -5,7 +5,6 @@ import {
 	Wifi,
 	Moon,
 	Sun,
-	Monitor,
 	X,
 } from "lucide-preact";
 import { useState } from "preact/hooks";
@@ -104,12 +103,12 @@ export function SettingsView() {
 									aria-label="Select Theme"
 									onKeyDown={handleKeyDown}
 								>
-									{[(["light", Sun] as const), (["system", Monitor] as const), (["dark", Moon] as const)].map(([t, Icon]) => {
+									{[(["light", Sun] as const), (["dark", Moon] as const)].map(([t, Icon]) => {
 										const isSelected = theme === t;
 										return (
 											<button
 												key={t}
-												onClick={() => setTheme(t)}
+												onClick={() => setTheme(t as any)}
 												role="radio"
 												aria-checked={isSelected}
 												aria-label={`${t} theme`}
