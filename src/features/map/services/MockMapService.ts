@@ -3,11 +3,21 @@ import { MOCK_OCCUPANCY_GRID } from "../mocks/mockMap";
 import type { NavigationState, OccupancyGrid, RobotPose, GoalPoint, PathPoint } from "../types";
 import { planPath } from "../utils/pathfinder";
 
-function getPointOnPath(path: { x: number; y: number }[], progress: number): { x: number; y: number } {
-	if (path.length === 0) return { x: 0, y: 0 };
-	if (path.length === 1) return path[0];
-	if (progress <= 0) return path[0];
-	if (progress >= 1) return path[path.length - 1];
+function getPointAndRotationOnPath(
+	path: { x: number; y: number }[],
+	progress: number
+): { x: number; y: number; rotation: number } {
+	if (path.length === 0) return { x: 0, y: 0, rotation: 0 };
+	if (path.length === 1) return { x: path[0].x, y: path[0].y, rotation: 0 };
+	if (progress <= 0) {
+		const r = Math.atan2(path[1].y - path[0].y, path[1].x - path[0].x);
+		return { x: path[0].x, y: path[0].y, rotation: r };
+	}
+	if (progress >= 1) {
+		const lastIdx = path.length - 1;
+		const r = Math.atan2(path[lastIdx].y - path[lastIdx - 1].y, path[lastIdx].x - path[lastIdx - 1].x);
+		return { x: path[lastIdx].x, y: path[lastIdx].y, rotation: r };
+	}
 
 	let totalLength = 0;
 	const segmentLengths = [];
@@ -17,7 +27,7 @@ function getPointOnPath(path: { x: number; y: number }[], progress: number): { x
 		totalLength += len;
 	}
 
-	if (totalLength === 0) return path[0];
+	if (totalLength === 0) return { x: path[0].x, y: path[0].y, rotation: 0 };
 
 	const targetDist = progress * totalLength;
 	let accumulated = 0;
@@ -28,15 +38,19 @@ function getPointOnPath(path: { x: number; y: number }[], progress: number): { x
 			const segProgress = (targetDist - accumulated) / len;
 			const start = path[i];
 			const end = path[i + 1];
+			const r = Math.atan2(end.y - start.y, end.x - start.x);
 			return {
 				x: start.x + (end.x - start.x) * segProgress,
 				y: start.y + (end.y - start.y) * segProgress,
+				rotation: r,
 			};
 		}
 		accumulated += len;
 	}
 
-	return path[path.length - 1];
+	const lastIdx = path.length - 1;
+	const r = Math.atan2(path[lastIdx].y - path[lastIdx - 1].y, path[lastIdx].x - path[lastIdx - 1].x);
+	return { x: path[lastIdx].x, y: path[lastIdx].y, rotation: r };
 }
 
 export class MockMapService implements IMapService {
@@ -86,8 +100,16 @@ export class MockMapService implements IMapService {
 			{ x: startX, y: startY, rotation: startRotation, timestamp: Date.now() },
 		];
 
-		const totalSteps = 20; // Increase resolution of path steps
-		const updateIntervalMs = 500; // updates every 500ms for smoother animation
+		// Calculate constant navigation speed and dynamic step parameters
+		let pathLength = 0;
+		for (let i = 0; i < path.length - 1; i++) {
+			pathLength += Math.hypot(path[i + 1].x - path[i].x, path[i + 1].y - path[i].y);
+		}
+
+		const speed = 1.6; // meters per second
+		const updateIntervalMs = 150; // update pose every 150ms for smooth transitions
+		const totalDurationMs = (pathLength / speed) * 1000;
+		const totalSteps = Math.max(5, Math.ceil(totalDurationMs / updateIntervalMs));
 
 		this.navigationState = {
 			...this.navigationState,
@@ -125,23 +147,17 @@ export class MockMapService implements IMapService {
 					pathHistory: [...pathHistory],
 				};
 			} else {
-				const currentPoint = getPointOnPath(path, progress);
-				const nextPoint = getPointOnPath(path, Math.min(1.0, progress + 0.02));
-				
-				let nextRotation = this.currentPose.rotation;
-				if (Math.hypot(nextPoint.x - currentPoint.x, nextPoint.y - currentPoint.y) > 0.01) {
-					nextRotation = Math.atan2(nextPoint.y - currentPoint.y, nextPoint.x - currentPoint.x);
-				}
+				const stateOnPath = getPointAndRotationOnPath(path, progress);
 
 				this.currentPose = {
-					x: currentPoint.x,
-					y: currentPoint.y,
-					rotation: nextRotation,
+					x: stateOnPath.x,
+					y: stateOnPath.y,
+					rotation: stateOnPath.rotation,
 				};
 				pathHistory.push({
 					x: this.currentPose.x,
 					y: this.currentPose.y,
-					rotation: nextRotation,
+					rotation: stateOnPath.rotation,
 					timestamp: Date.now(),
 				});
 				this.navigationState = {

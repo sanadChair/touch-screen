@@ -1,5 +1,5 @@
 import { X, Maximize } from "lucide-preact";
-import { useEffect, useMemo, useState } from "preact/hooks";
+import { useEffect, useState, useRef } from "preact/hooks";
 import { MapCanvas } from "../components/MapCanvas";
 import { useMapData } from "../hooks/useMapData";
 import useGoal from "../hooks/useGoal";
@@ -28,16 +28,25 @@ export function MapView() {
 	const { isOffline, setOffline, setConnected } = useServerHealth();
 	const { refreshRooms } = useRooms();
 	const [isFullscreen, setIsFullscreen] = useState(false);
-
-	const activePoint = useMemo(() => {
-		if (!activeDestinationId) return null;
-		const destination = destinations.find((item) => item.id === activeDestinationId);
-		return destination ? { x: destination.point.x, y: destination.point.y, label: destination.label } : null;
-	}, [activeDestinationId, destinations]);
+	const lastDestIdRef = useRef<string | null>(null);
 
 	useEffect(() => {
-		setExternalNavigationGoal(activePoint);
-	}, [activePoint, setExternalNavigationGoal]);
+		if (activeDestinationId === lastDestIdRef.current) return;
+		lastDestIdRef.current = activeDestinationId;
+
+		if (!activeDestinationId) {
+			setExternalNavigationGoal(null);
+		} else {
+			const destination = destinations.find((item) => item.id === activeDestinationId);
+			if (destination) {
+				setExternalNavigationGoal({
+					x: destination.point.x,
+					y: destination.point.y,
+					label: destination.label,
+				});
+			}
+		}
+	}, [activeDestinationId, destinations, setExternalNavigationGoal]);
 
 	return (
 		<div className="flex-1 h-full flex flex-row p-3 gap-3 bg-gray-50 dark:bg-slate-900 transition-colors duration-300 kiosk-view overflow-hidden select-none">

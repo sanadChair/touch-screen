@@ -2,8 +2,10 @@ import { useMemo, useState, useEffect } from "preact/hooks";
 import { useRooms } from "../../map/hooks/useRooms";
 import type { QuickNavDestination } from "../types";
 import { useMapData } from "../../map/hooks/useMapData";
+import { QuickNavServiceFactory } from "../services/QuickNavServiceFactory";
 
 export function useQuickNav() {
+	const service = QuickNavServiceFactory.getService();
 	const { rooms } = useRooms();
 	const [activeDestinationId, setActiveDestinationId] = useState<string | null>(null);
 	const { navigationStatus } = useMapData();
@@ -26,6 +28,7 @@ export function useQuickNav() {
 
 	const navigateTo = (destination: QuickNavDestination) => {
 		setActiveDestinationId(destination.id);
+		service.navigateTo(destination);
 	};
 
 	return { destinations, navigateTo, activeDestinationId };
