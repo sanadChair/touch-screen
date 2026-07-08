@@ -288,6 +288,18 @@ export const MapCanvas = ({ mapData, robotPose, onGoalClick, className, external
 		if (!originalOnPanEnd()) return;
 		const coords = getGridCoords(event);
 		if (!coords) return;
+
+		// Prevent selecting walls, obstacles, or unknown spaces as goal
+		const px = Math.floor(coords.pixelX);
+		const py = Math.floor(coords.pixelY_ROS);
+		if (px >= 0 && px < mapData.info.width && py >= 0 && py < mapData.info.height) {
+			const cellValue = mapData.data[py * mapData.info.width + px];
+			if (cellValue === -1 || cellValue > 30) {
+				console.warn(`Blocked setting goal: clicked cell is wall/obstacle or unknown (${cellValue})`);
+				return;
+			}
+		}
+
 		const worldX = mapData.info.origin.position.x + coords.pixelX * mapData.info.resolution;
 		const worldY = mapData.info.origin.position.y + coords.pixelY_ROS * mapData.info.resolution;
 		setGoal({ xPct: coords.xPct, yPct: coords.yPct, worldX, worldY });
