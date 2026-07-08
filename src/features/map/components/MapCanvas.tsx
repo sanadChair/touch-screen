@@ -160,9 +160,7 @@ export const MapCanvas = ({ mapData, robotPose, onGoalClick, className, external
 			worldX: externalGoal.x,
 			worldY: externalGoal.y,
 		});
-		const matchingRoom = rooms.find((room) => Math.abs(room.worldX - externalGoal.x) < 0.01 && Math.abs(room.worldY - externalGoal.y) < 0.01);
-		if (matchingRoom) zoomToRoom(matchingRoom);
-	}, [externalGoal, mapData.info.height, mapData.info.origin.position.x, mapData.info.origin.position.y, mapData.info.resolution, mapData.info.width, rooms, zoomToRoom]);
+	}, [externalGoal, mapData.info.height, mapData.info.origin.position.x, mapData.info.origin.position.y, mapData.info.resolution, mapData.info.width]);
 
 	useEffect(() => {
 		const container = containerRef.current;
