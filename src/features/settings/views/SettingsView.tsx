@@ -231,6 +231,22 @@ export function SettingsView() {
 										onChange={(e) => setTempUrl(e.currentTarget.value)}
 										className="px-4 py-3 rounded-xl border border-gray-200 dark:border-slate-750 dark:bg-slate-900 dark:text-white focus:outline-none focus:border-blue-500 text-sm font-mono"
 									/>
+									<div className="flex gap-2 mt-1">
+										<button
+											type="button"
+											onClick={() => setTempUrl("https://9905-156-217-194-214.ngrok-free.app/api/v1")}
+											className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-lg text-xs font-bold transition-all cursor-pointer border border-indigo-200/50 dark:border-indigo-500/20"
+										>
+											⚡ Use Ngrok Tunnel URL
+										</button>
+										<button
+											type="button"
+											onClick={() => setTempUrl("http://localhost:5051/api/v1")}
+											className="px-3 py-1.5 bg-gray-50 hover:bg-gray-100 dark:bg-slate-900 dark:hover:bg-slate-750 text-gray-600 dark:text-slate-400 rounded-lg text-xs font-bold transition-all cursor-pointer border border-gray-200/50 dark:border-slate-700/50"
+										>
+											Use Localhost
+										</button>
+									</div>
 								</div>
 							)}
 						</div>

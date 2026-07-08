@@ -65,7 +65,8 @@ export class ServerRoomService implements IRoomService {
 
 				// 3. Map devices to RoomDevice shape
 				const roomDevicesList: RoomDevice[] = Object.values(devicesMap).map((dev: any) => {
-					const controlType = dev.controlType || "binary";
+					const fullControlType = dev.control_type || dev.controlType || "binary";
+					const [controlType, category] = fullControlType.split(":");
 					const stateValue = dev.state ?? 0;
 
 					let actions: string[] = [];
@@ -93,11 +94,16 @@ export class ServerRoomService implements IRoomService {
 						roomId: dev.room?.id ?? "",
 						roomName: dev.room?.name ?? "",
 						name: dev.name,
-						type: controlType,
+						type: controlType || "binary",
+						category: category || "",
 						actions,
 						state: stateMap,
 					};
 				});
+
+				const unassignedDevices = roomDevicesList.filter(
+					(d) => !d.roomId || d.roomId === "" || d.roomId === "unassigned"
+				);
 
 				// 4. Map rooms and stitch devices
 				const mappedRooms: DefinedRoom[] = Object.values(roomsMap).map((room: any) => {
@@ -119,6 +125,22 @@ export class ServerRoomService implements IRoomService {
 						devices: roomDevices,
 					};
 				});
+
+				if (unassignedDevices.length > 0) {
+					mappedRooms.push({
+						id: "unassigned",
+						name: "Unassigned Devices",
+						iconName: "Settings2",
+						minX: 0,
+						maxX: 0,
+						minY: 0,
+						maxY: 0,
+						worldX: 0,
+						worldY: 0,
+						worldTheta: 0,
+						devices: unassignedDevices,
+					});
+				}
 
 				this.roomsCache = mappedRooms;
 				this.emit();

@@ -1,5 +1,5 @@
 import type { IRoomService } from "./IRoomService";
-import type { DefinedRoom } from "../types";
+import type { DefinedRoom, RoomDevice } from "../types";
 
 export class MockRoomService implements IRoomService {
 	private static instance: MockRoomService | null = null;
@@ -176,6 +176,105 @@ export class MockRoomService implements IRoomService {
 			});
 			return { ...room, devices };
 		});
+		this.emit();
+	}
+
+	public addDevice(roomId: string, device: { id: string; name: string; type: string; category?: string }): void {
+		const targetRoomId = roomId && roomId !== "" ? roomId : "unassigned";
+
+		// Create virtual Unassigned room if target is unassigned and doesn't exist yet
+		if (targetRoomId === "unassigned" && !this.rooms.some((r) => r.id === "unassigned")) {
+			this.rooms.push({
+				id: "unassigned",
+				name: "Unassigned Devices",
+				iconName: "Settings2",
+				minX: 0,
+				maxX: 0,
+				minY: 0,
+				maxY: 0,
+				worldX: 0,
+				worldY: 0,
+				worldTheta: 0,
+				devices: [],
+			});
+		}
+
+		this.rooms = this.rooms.map((room) => {
+			if (room.id !== targetRoomId && room.name !== targetRoomId) return room;
+			if (room.devices.some((d) => d.id === device.id)) return room;
+
+			const newDevice: RoomDevice = {
+				id: device.id,
+				roomId: room.id,
+				roomName: room.name,
+				name: device.name,
+				type: device.type,
+				category: device.category,
+				actions: device.type === "binary" ? ["turn_on", "turn_off"] : ["set_brightness"],
+				state: device.type === "binary" ? { power: "off" } : { brightness: "0" },
+			};
+			return {
+				...room,
+				devices: [...room.devices, newDevice],
+			};
+		});
+		this.emit();
+	}
+
+	public moveDeviceToRoom(deviceId: string, roomId: string): void {
+		let deviceToMove: RoomDevice | null = null;
+
+		// 1. Remove device from its current room
+		this.rooms = this.rooms.map((room) => {
+			const dev = room.devices.find((d) => d.id === deviceId);
+			if (!dev) return room;
+			deviceToMove = dev;
+			return {
+				...room,
+				devices: room.devices.filter((d) => d.id !== deviceId),
+			};
+		});
+
+		// 2. Add virtual Unassigned room if moving to unassigned and doesn't exist
+		if (roomId === "unassigned" && !this.rooms.some((r) => r.id === "unassigned")) {
+			this.rooms.push({
+				id: "unassigned",
+				name: "Unassigned Devices",
+				iconName: "Settings2",
+				minX: 0,
+				maxX: 0,
+				minY: 0,
+				maxY: 0,
+				worldX: 0,
+				worldY: 0,
+				worldTheta: 0,
+				devices: [],
+			});
+		}
+
+		// 3. Add to the target room
+		if (deviceToMove) {
+			const dev = deviceToMove as RoomDevice;
+			this.rooms = this.rooms.map((room) => {
+				if (room.id !== roomId && room.name !== roomId) return room;
+				return {
+					...room,
+					devices: [
+						...room.devices,
+						{ ...dev, roomId: room.id, roomName: room.name },
+					],
+				};
+			});
+		}
+
+		// 4. Prune the unassigned room if it is empty now
+		this.rooms = this.rooms.filter((room) => {
+			if (room.id === "unassigned" && room.devices.length === 0) {
+				return false;
+			}
+			return true;
+		});
+
 		this.emit();
 	}
 

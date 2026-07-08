@@ -17,6 +17,7 @@ export interface RoomDevice {
 	roomName: string;
 	name: string;
 	type: string;
+	category?: string;
 	actions: string[];
 	state: DeviceStateMap;
 }
@@ -112,6 +113,7 @@ export interface RoomAction {
 	type: "toggle" | "slider" | "button";
 	command: string;
 	value?: boolean | number;
+	category?: string;
 }
 
 export interface RoomWithActions extends DefinedRoom {

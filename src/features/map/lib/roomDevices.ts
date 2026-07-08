@@ -111,6 +111,7 @@ const toSliderAction = (device: RoomDevice, command: string): RoomAction => ({
 	type: "slider",
 	command,
 	value: getNumericValue(device, command),
+	category: device.category,
 });
 
 const toToggleAction = (device: RoomDevice): RoomAction => ({
@@ -123,6 +124,7 @@ const toToggleAction = (device: RoomDevice): RoomAction => ({
 	type: "toggle",
 	command: "power",
 	value: getToggleValue(device),
+	category: device.category,
 });
 
 const toButtonAction = (device: RoomDevice, command: string): RoomAction => ({
@@ -134,6 +136,7 @@ const toButtonAction = (device: RoomDevice, command: string): RoomAction => ({
 	iconName: getActionIcon(device, command),
 	type: "button",
 	command,
+	category: device.category,
 });
 
 export const mapRosDevice = (
