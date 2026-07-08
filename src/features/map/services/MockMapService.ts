@@ -11,7 +11,7 @@ export class MockMapService implements IMapService {
 	};
 	private navigationListeners = new Set<(state: NavigationState) => void>();
 	private robotPoseListeners = new Set<(pose: RobotPose) => void>();
-	private currentPose: RobotPose = { x: 0, y: 0, rotation: 0 };
+	private currentPose: RobotPose = { x: 10.0, y: 10.0, rotation: 0 };
 	private interval: number | undefined;
 
 	onMapUpdate(callback: (map: OccupancyGrid) => void): void {
