@@ -21,6 +21,7 @@ import { getAllDevices, getRoomActions } from "../../map/lib/roomDevices";
 import { SmartHomeServiceFactory } from "../services/SmartHomeServiceFactory";
 import { useArrowNavigation } from "../../../shared/hooks/useArrowNavigation";
 import { getServerHealth } from "../../../shared/hooks/useServerHealth";
+import { getServerUrl, getConnectionType } from "../../../shared/lib/config";
 import { useSmartHomeProvisioning } from "../hooks/useSmartHomeProvisioning";
 import type { UnprovisionedDevice } from "../hooks/useSmartHomeProvisioning";
 import { cn } from "../../../shared/lib/utils";
@@ -177,8 +178,8 @@ export function SmartHomeView() {
 		setIsScanning(true);
 		setErrorMessage(null);
 		try {
-			const serverUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:5051/api/v1";
-			const connType = import.meta.env.VITE_CONNECTION_TYPE || "NATIVE";
+			const serverUrl = getServerUrl();
+			const connType = getConnectionType();
 
 			if (connType === "MOCK" || getServerHealth() === "offline") {
 				// Simulate offline discovery

@@ -24,6 +24,21 @@ const TABS: NavTab[] = [
 
 export function App() {
 	const [activeTabId, setActiveTabId] = useState<TabId>("home");
+	const [windowSize, setWindowSize] = useState({
+		width: typeof window !== "undefined" ? window.innerWidth : 800,
+		height: typeof window !== "undefined" ? window.innerHeight : 480,
+	});
+
+	useEffect(() => {
+		const handleResize = () => {
+			setWindowSize({
+				width: window.innerWidth,
+				height: window.innerHeight,
+			});
+		};
+		window.addEventListener("resize", handleResize);
+		return () => window.removeEventListener("resize", handleResize);
+	}, []);
 
 	useEffect(() => {
 		const handleGlobalArrows = (e: KeyboardEvent) => {
@@ -43,8 +58,19 @@ export function App() {
 
 	useTheme();
 
-	return (
-		<div className="w-screen h-screen flex bg-gray-100 dark:bg-slate-900 overflow-hidden font-sans text-gray-900 dark:text-gray-100 transition-colors duration-300">
+	const targetWidth = 800;
+	const targetHeight = 480;
+
+	// Automatically run in standard fullscreen mode if the screen is at or smaller than the kiosk dimensions
+	const isKioskSize = windowSize.width <= targetWidth && windowSize.height <= targetHeight;
+
+	// Calculate scaling factor to fit the target kiosk container inside the viewport
+	const scaleX = windowSize.width / targetWidth;
+	const scaleY = windowSize.height / targetHeight;
+	const scale = Math.min(scaleX, scaleY);
+
+	const appContent = (
+		<div className="w-full h-full flex bg-gray-100 dark:bg-slate-900 overflow-hidden font-sans text-gray-900 dark:text-gray-100 transition-colors duration-300">
 			<Sidebar
 				tabs={TABS}
 				activeTabId={activeTabId}
@@ -106,6 +132,39 @@ export function App() {
 					<SettingsView />
 				</div>
 			</main>
+		</div>
+	);
+
+	if (isKioskSize) {
+		return (
+			<div className="w-screen h-screen overflow-hidden">
+				{appContent}
+			</div>
+		);
+	}
+
+	return (
+		<div className="w-screen h-screen bg-slate-950 flex items-center justify-center overflow-hidden relative">
+			{/* Modern subtle ambient glow matching design aesthetics */}
+			<div 
+				className="absolute inset-0 pointer-events-none opacity-30 blur-[120px] transition-colors duration-500"
+				style={{
+					backgroundImage: "radial-gradient(circle at center, var(--color-indigo-500, #6366f1) 0%, transparent 65%)"
+				}}
+			/>
+
+			{/* Centered Kiosk Screen Container */}
+			<div
+				style={{
+					width: `${targetWidth}px`,
+					height: `${targetHeight}px`,
+					transform: `scale(${scale})`,
+					transformOrigin: "center center",
+				}}
+				className="relative shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7)] border border-slate-200/10 dark:border-slate-800/80 rounded-3xl overflow-hidden bg-white dark:bg-slate-900 shrink-0"
+			>
+				{appContent}
+			</div>
 		</div>
 	);
 }

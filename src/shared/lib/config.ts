@@ -3,5 +3,5 @@ export const getServerUrl = (): string => {
 };
 
 export const getConnectionType = (): string => {
-	return localStorage.getItem("VITE_CONNECTION_TYPE") || import.meta.env.VITE_CONNECTION_TYPE || "NATIVE";
+	return localStorage.getItem("VITE_CONNECTION_TYPE") || import.meta.env.VITE_CONNECTION_TYPE || "SERVER";
 };
