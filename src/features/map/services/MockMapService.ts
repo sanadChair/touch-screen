@@ -1,6 +1,43 @@
 import type { IMapService } from "./IMapService";
 import { MOCK_OCCUPANCY_GRID } from "../mocks/mockMap";
 import type { NavigationState, OccupancyGrid, RobotPose, GoalPoint, PathPoint } from "../types";
+import { planPath } from "../utils/pathfinder";
+
+function getPointOnPath(path: { x: number; y: number }[], progress: number): { x: number; y: number } {
+	if (path.length === 0) return { x: 0, y: 0 };
+	if (path.length === 1) return path[0];
+	if (progress <= 0) return path[0];
+	if (progress >= 1) return path[path.length - 1];
+
+	let totalLength = 0;
+	const segmentLengths = [];
+	for (let i = 0; i < path.length - 1; i++) {
+		const len = Math.hypot(path[i + 1].x - path[i].x, path[i + 1].y - path[i].y);
+		segmentLengths.push(len);
+		totalLength += len;
+	}
+
+	if (totalLength === 0) return path[0];
+
+	const targetDist = progress * totalLength;
+	let accumulated = 0;
+
+	for (let i = 0; i < path.length - 1; i++) {
+		const len = segmentLengths[i];
+		if (accumulated + len >= targetDist) {
+			const segProgress = (targetDist - accumulated) / len;
+			const start = path[i];
+			const end = path[i + 1];
+			return {
+				x: start.x + (end.x - start.x) * segProgress,
+				y: start.y + (end.y - start.y) * segProgress,
+			};
+		}
+		accumulated += len;
+	}
+
+	return path[path.length - 1];
+}
 
 export class MockMapService implements IMapService {
 	private navigationState: NavigationState = {
@@ -37,9 +74,20 @@ export class MockMapService implements IMapService {
 		const startY = this.currentPose.y;
 		const startRotation = this.currentPose.rotation;
 
+		// Calculate A* path on occupancy grid
+		let path = planPath(MOCK_OCCUPANCY_GRID as OccupancyGrid, startX, startY, targetX, targetY);
+
+		if (!path) {
+			console.warn("MockMapService: A* path planning failed or path is blocked. Falling back to straight line.");
+			path = [{ x: startX, y: startY }, { x: targetX, y: targetY }];
+		}
+
 		const pathHistory: PathPoint[] = [
 			{ x: startX, y: startY, rotation: startRotation, timestamp: Date.now() },
 		];
+
+		const totalSteps = 20; // Increase resolution of path steps
+		const updateIntervalMs = 500; // updates every 500ms for smoother animation
 
 		this.navigationState = {
 			...this.navigationState,
@@ -52,14 +100,21 @@ export class MockMapService implements IMapService {
 
 		this.interval = setInterval(() => {
 			steps++;
-			const progress = steps / 10;
+			const progress = steps / totalSteps;
 			if (progress >= 1) {
 				clearInterval(this.interval);
-				this.currentPose = { x: targetX, y: targetY, rotation: 0 };
+				const finalPoint = path[path.length - 1];
+				// Align final orientation towards the path's last segment direction
+				let finalRotation = 0;
+				if (path.length >= 2) {
+					const p1 = path[path.length - 2];
+					finalRotation = Math.atan2(finalPoint.y - p1.y, finalPoint.x - p1.x);
+				}
+				this.currentPose = { x: finalPoint.x, y: finalPoint.y, rotation: finalRotation };
 				pathHistory.push({
-					x: targetX,
-					y: targetY,
-					rotation: 0,
+					x: finalPoint.x,
+					y: finalPoint.y,
+					rotation: finalRotation,
 					timestamp: Date.now(),
 				});
 				this.navigationState = {
@@ -70,10 +125,17 @@ export class MockMapService implements IMapService {
 					pathHistory: [...pathHistory],
 				};
 			} else {
-				const nextRotation = Math.atan2(targetY - startY, targetX - startX);
+				const currentPoint = getPointOnPath(path, progress);
+				const nextPoint = getPointOnPath(path, Math.min(1.0, progress + 0.02));
+				
+				let nextRotation = this.currentPose.rotation;
+				if (Math.hypot(nextPoint.x - currentPoint.x, nextPoint.y - currentPoint.y) > 0.01) {
+					nextRotation = Math.atan2(nextPoint.y - currentPoint.y, nextPoint.x - currentPoint.x);
+				}
+
 				this.currentPose = {
-					x: startX + (targetX - startX) * progress,
-					y: startY + (targetY - startY) * progress,
+					x: currentPoint.x,
+					y: currentPoint.y,
 					rotation: nextRotation,
 				};
 				pathHistory.push({
@@ -87,16 +149,17 @@ export class MockMapService implements IMapService {
 					status: "navigating",
 					pathHistory: [...pathHistory],
 					lastFeedback: {
+						currentPose: { ...this.currentPose },
 						distanceRemaining: Math.hypot(targetX - this.currentPose.x, targetY - this.currentPose.y),
-						estimatedTimeRemainingSec: 10 - steps,
-						navigationTimeSec: steps,
+						estimatedTimeRemainingSec: Math.ceil(((totalSteps - steps) * updateIntervalMs) / 1000),
+						navigationTimeSec: Math.ceil((steps * updateIntervalMs) / 1000),
 						numberOfRecoveries: 0,
 					},
 				};
 			}
 			this.emitPose();
 			this.emitNavigation();
-		}, 1000) as unknown as number;
+		}, updateIntervalMs) as unknown as number;
 	}
 
 	cancelGoal(): void {
